@@ -1,6 +1,12 @@
-name = "mapheritage"
-compatibility_date = "2024-11-01"
-pages_build_output_dir = "public"
+name = "mapheritage" 
+compatibility_date = "2024-11-01" 
+pages_build_output_dir = "public" 
+[[d1_databases]] 
+binding = "DB" 
+database_name = "mapheritage" 
+database_id = "6dba100c-3b65-439b-9ae9-6a8ff0222566" 
+[ai] 
+binding = "AI"
 
 # Привязки подключаются кликами в дашборде Cloudflare:
 # Pages → mapheritage → Settings → Bindings → Add
