@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MapHeritage — история вашей семьи на одной карте</title>
+<meta name="description" content="Расскажите в чате, где жили вы и ваши близкие, — MapHeritage соберёт рассказ в карту семейных маршрутов, которой можно поделиться с родными.">
+<meta property="og:title" content="MapHeritage — история вашей семьи на одной карте">
+<meta property="og:description" content="Расскажите в чате, где жили вы и ваши близкие, — и получите карту семейных маршрутов.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .hero { position: relative; height: 100svh; min-height: 620px; background: var(--sea); }
+  #heroMap { position: absolute; inset: 0; }
+  .hero .cartouche { position: absolute; z-index: 500; left: clamp(16px, 4vw, 56px); top: 50%; transform: translateY(-50%); width: min(470px, calc(100% - 32px)); }
+  .hero h1 { font-size: clamp(38px, 5.2vw, 60px); margin: 18px 0 16px; }
+  .hero .lead { font-size: 18px; margin: 0 0 24px; color: var(--ink-2); }
+  .hero .actions { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; }
+  .hero .map-legend { position: absolute; z-index: 500; right: 16px; bottom: 30px; background: rgba(250,250,246,.92); border: 1px solid var(--rule); padding: 12px 14px; max-width: 260px; }
+  .map-legend p { margin: 0 0 8px; font: italic 15px/1.3 var(--display); }
+  .map-legend .linkbtn { margin-top: 8px; font-size: 13px; }
+
+  main section { padding: clamp(64px, 9vw, 120px) clamp(20px, 5vw, 64px); }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h2 { font-size: clamp(32px, 4vw, 46px); margin-bottom: 36px; max-width: 16em; }
+  .steps { background: var(--sea);
+    background-image: linear-gradient(var(--sea-deep) 1px, transparent 1px), linear-gradient(90deg, var(--sea-deep) 1px, transparent 1px);
+    background-size: 96px 96px; background-position: -1px -1px; }
+  .steps ol { list-style: none; counter-reset: s; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .steps li { counter-increment: s; background: var(--paper); padding: 28px 26px 30px; border-top: 3px solid var(--ink); }
+  .steps li::before { content: counter(s); font: 400 52px/1 var(--display); color: var(--red); display: block; margin-bottom: 14px; }
+  .steps h3 { font-size: 25px; margin-bottom: 10px; }
+  .steps p { margin: 0; color: var(--ink-2); }
+
+  .story { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(32px, 6vw, 96px); align-items: start; }
+  .story p { font-size: 19px; line-height: 1.65; margin: 0 0 1em; max-width: 34em; }
+  .story .quote { font: italic 30px/1.3 var(--display); margin: 0; padding-left: 24px; border-left: 3px solid var(--red); max-width: 14em; }
+  .gift { border-top: 1px solid var(--rule); }
+  .final { background: var(--ink); color: var(--paper); text-align: left; }
+  .final h2 { color: var(--paper); margin-bottom: 28px; }
+  .final p { color: #C6CFDA; margin: 20px 0 0; font-size: 15px; }
+  footer { padding: 28px clamp(20px, 5vw, 64px); font-size: 14px; color: var(--ink-2); display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+
+  @media (max-width: 860px) {
+    .hero { height: auto; min-height: 0; display: flex; flex-direction: column; }
+    #heroMap { position: relative; height: 56svh; min-height: 340px; order: 2; }
+    .hero .cartouche { position: relative; left: auto; top: auto; transform: none; width: auto; margin: 20px 16px 26px; order: 1; }
+    .hero .map-legend { position: relative; right: auto; bottom: auto; order: 3; max-width: none; margin: 0; border-width: 1px 0 0; }
+    .steps ol, .story { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div id="heroMap" aria-label="Пример карты семьи"></div>
+  <div class="cartouche">
+    <a class="brand" href="/"><b>Map</b>Heritage</a>
+    <h1>История вашей семьи на одной карте</h1>
+    <p class="lead">Расскажите, где родились, учились и жили вы и ваши близкие. MapHeritage соберёт рассказ в карту маршрутов — как в атласе великих путешествий, только о вашей семье.</p>
+    <div class="actions">
+      <a class="btn primary" href="/create">Создать карту семьи</a>
+      <a class="linkbtn" href="#how">Как это устроено</a>
+    </div>
+  </div>
+  <aside class="map-legend">
+    <p>Пример: семья Левиных, 1930–1996</p>
+    <ul class="legend" id="heroLegend"></ul>
+    <button class="linkbtn" id="replay" type="button">Проиграть путь ещё раз</button>
+  </aside>
+</header>
+
+<main>
+  <section class="steps" id="how">
+    <div class="wrap">
+      <h2>Карта складывается из разговора</h2>
+      <ol>
+        <li><h3>Расскажите в чате</h3><p>Помощник задаёт по одному вопросу: кто, где, когда и что тогда происходило. Можно начать с себя и дойти до прадедов.</p></li>
+        <li><h3>Смотрите, как растёт карта</h3><p>Каждое место и каждый переезд появляются на карте прямо во время разговора. Для старых названий — Кёнигсберг, Сталино — помощник найдёт нынешнее место.</p></li>
+        <li><h3>Поделитесь с родными</h3><p>Карта открывается по ссылке. Её можно проиграть как путешествие и распечатать вместе с семейной хроникой.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap story">
+      <p class="quote">Одна карта вместо тысячи слов.</p>
+      <div>
+        <p>С каждым годом уходят люди, которые помнят, откуда пришла семья: эвакуации, распределения, переезды через полконтинента. Эти истории редко записывают — и они теряются.</p>
+        <p>MapHeritage сохраняет память о перемещениях семей. Места, где ваши близкие родились, провели детство, учились, пережили трудное и радостное, собираются на одной карте, которую можно передать детям и внукам.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="gift">
+    <div class="wrap story">
+      <h2>Подарок, сделанный из вашей истории</h2>
+      <div>
+        <p>Карта семьи — личный подарок к юбилею, свадьбе или большой семейной встрече. Особенно когда соединяются две семьи, у каждой из которых своё наследие и свои дороги.</p>
+        <p>Соберите карту вместе с родителями или бабушкой — разговор о том, где они жили, часто оказывается дороже самого подарка.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="final">
+    <div class="wrap">
+      <h2>Начните с одного места — того, где родились вы</h2>
+      <a class="btn primary" href="/create">Создать карту семьи</a>
+      <p>Это бесплатно. Карту видят только те, кому вы отправите ссылку.</p>
+    </div>
+  </section>
+</main>
+<footer><span>© MapHeritage</span><span>Картографическая основа: OpenStreetMap, CARTO</span></footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/assets/mapkit.js"></script>
+<script>
+const demo = {
+  title: 'Семья Левиных',
+  people: [
+    { id: 'p1', name: 'Анна', relation: 'бабушка' },
+    { id: 'p2', name: 'Давид', relation: 'дедушка' },
+    { id: 'p3', name: 'Ирина', relation: 'мама' },
+    { id: 'p4', name: 'Я', relation: '' },
+  ],
+  events: [
+    { id: 'e1', personId: 'p1', year: 1934, when: '1934', type: 'birth', place: 'Витебск', lat: 55.19, lng: 30.2, note: 'родилась в семье учителей' },
+    { id: 'e2', personId: 'p1', year: 1941, when: '1941', type: 'evacuation', place: 'Ташкент', lat: 41.3, lng: 69.24, note: 'эвакуация с матерью и сёстрами' },
+    { id: 'e3', personId: 'p1', year: 1952, when: '1952', type: 'study', place: 'Ленинград', lat: 59.94, lng: 30.31, note: 'поступила в педагогический' },
+    { id: 'e4', personId: 'p1', year: 1958, when: '1958', type: 'work', place: 'Норильск', lat: 69.35, lng: 88.2, note: 'распределение в школу' },
+    { id: 'e5', personId: 'p2', year: 1930, when: '1930', type: 'birth', place: 'Одесса', lat: 46.48, lng: 30.72, note: '' },
+    { id: 'e6', personId: 'p2', year: 1949, when: '1949', type: 'service', place: 'Кёнигсберг', lat: 54.71, lng: 20.51, note: 'служба на флоте' },
+    { id: 'e7', personId: 'p2', year: 1953, when: '1953', type: 'study', place: 'Ленинград', lat: 59.94, lng: 30.31, note: 'горный институт' },
+    { id: 'e8', personId: 'p2', year: 1958, when: '1958', type: 'work', place: 'Норильск', lat: 69.35, lng: 88.2, note: 'инженер на комбинате' },
+    { id: 'e9', personId: 'p3', year: 1960, when: '1960', type: 'birth', place: 'Норильск', lat: 69.35, lng: 88.2, note: '' },
+    { id: 'e10', personId: 'p3', year: 1978, when: '1978', type: 'study', place: 'Москва', lat: 55.75, lng: 37.62, note: 'университет' },
+    { id: 'e11', personId: 'p3', year: 1996, when: '1996', type: 'move', place: 'Берлин', lat: 52.52, lng: 13.4, note: 'переезд всей семьёй' },
+    { id: 'e12', personId: 'p4', year: 1988, when: '1988', type: 'birth', place: 'Москва', lat: 55.75, lng: 37.62, note: '' },
+    { id: 'e13', personId: 'p4', year: 1996, when: '1996', type: 'move', place: 'Берлин', lat: 52.52, lng: 13.4, note: '' },
+  ],
+};
+const wide = () => innerWidth > 860;
+const kit = MapKit.create(document.getElementById('heroMap'), {
+  scrollWheelZoom: false, zoomControl: false,
+  padding: () => {
+    if (!wide()) return { topLeft: [24, 24], bottomRight: [24, 24] };
+    const c = document.querySelector('.hero .cartouche').getBoundingClientRect();
+    return { topLeft: [c.right + 30, 60], bottomRight: [60, 60] };
+  },
+});
+const col = MapKit.colors(demo.people);
+document.getElementById('heroLegend').innerHTML = demo.people.map((p) =>
+  `<li><i style="background:${col[p.id]}"></i>${MapKit.esc(p.name)} <small>${MapKit.esc(p.relation)}</small></li>`).join('');
+const play = () => kit.render(demo, { animate: true, stepMs: 520 });
+setTimeout(play, 300);
+document.getElementById('replay').onclick = play;
+addEventListener('resize', () => { kit.invalidate(); kit.fit(demo.events); });
+</script>
+</body>
+</html>

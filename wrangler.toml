@@ -1,0 +1,8 @@
+name = "mapheritage"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "public"
+
+# Привязки подключаются кликами в дашборде Cloudflare:
+# Pages → mapheritage → Settings → Bindings → Add
+#   D1 database:  Variable name = DB   → база mapheritage
+#   Workers AI:   Variable name = AI

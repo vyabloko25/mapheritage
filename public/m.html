@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Карта семьи — MapHeritage</title>
+<meta property="og:title" content="Карта семьи">
+<meta property="og:description" content="История семьи на одной карте — MapHeritage">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=PT+Sans:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/style.css">
+<style>
+  .stage { position: relative; height: 88svh; min-height: 520px; background: var(--sea); }
+  #map { position: absolute; inset: 0; }
+  .stage .cartouche { position: absolute; z-index: 500; left: 20px; top: 20px; width: min(360px, calc(100% - 40px)); padding: 20px 22px; }
+  .cartouche h1 { font-size: clamp(28px, 3.4vw, 38px); margin: 10px 0 6px; }
+  .cartouche .sub { color: var(--ink-2); margin: 0 0 14px; font-size: 15px; }
+  .cartouche .legend { margin-bottom: 16px; }
+  .cartouche .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chronicle { padding: clamp(48px, 7vw, 96px) clamp(20px, 5vw, 64px); max-width: 1180px; margin: 0 auto; }
+  .chronicle > h2 { font-size: clamp(30px, 3.6vw, 42px); margin-bottom: 36px; }
+  .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 40px 48px; }
+  .person h3 { font-size: 25px; padding-bottom: 8px; margin-bottom: 14px; border-bottom: 3px solid; }
+  .person h3 small { font: 15px var(--text); color: var(--ink-2); margin-left: 6px; }
+  .person ol { list-style: none; margin: 0; padding: 0; }
+  .person li { display: grid; grid-template-columns: 5.5em 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px dotted var(--rule); }
+  .person li b { font: 400 17px/1.4 var(--display); }
+  .person li span { color: var(--ink-2); font-size: 15px; }
+  .person li strong { color: var(--ink); font-weight: 700; }
+  .cta { border-top: 1px solid var(--rule); padding: 36px clamp(20px, 5vw, 64px); display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .cta p { margin: 0; font: italic 21px var(--display); }
+  .missing { position: absolute; z-index: 600; inset: 0; display: grid; place-items: center; }
+  @media (max-width: 700px) {
+    .stage { height: auto; min-height: 0; display: flex; flex-direction: column; }
+    #map { position: relative; height: 62svh; order: 2; }
+    .stage .cartouche { position: relative; left: auto; top: auto; width: auto; margin: 16px; order: 1; }
+  }
+  @media print {
+    @page { margin: 12mm; }
+    body { background: #fff; }
+    .stage { height: 150mm; min-height: 0; }
+    .cartouche .actions, .cta, .leaflet-control-zoom { display: none !important; }
+    .stage .cartouche { box-shadow: none; }
+    .chronicle { padding: 10mm 0 0; }
+    .person { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div id="map" aria-label="Карта семьи"></div>
+  <div class="cartouche" id="card">
+    <a class="brand" href="/"><b>Map</b>Heritage</a>
+    <h1 id="title">Карта семьи</h1>
+    <p class="sub" id="sub"></p>
+    <ul class="legend" id="legend"></ul>
+    <div class="actions">
+      <button class="btn small primary" id="play" type="button">Проиграть путь</button>
+      <button class="btn small" id="share" type="button">Поделиться</button>
+      <button class="btn small" id="print" type="button">Печать</button>
+      <a class="btn small" id="edit" href="#" hidden>Продолжить рассказ</a>
+    </div>
+  </div>
+</div>
+<section class="chronicle" id="chronicle" hidden>
+  <h2>Хроника</h2>
+  <div class="people" id="people"></div>
+</section>
+<div class="cta"><p>Соберите карту своей семьи.</p><a class="btn primary" href="/create">Создать карту семьи</a></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/assets/mapkit.js"></script>
+<script>
+const $ = (id) => document.getElementById(id), esc = MapKit.esc;
+const id = location.pathname.split('/')[2] || new URLSearchParams(location.search).get('id');
+const kit = MapKit.create($('map'), {
+  scrollWheelZoom: false,
+  padding: () => innerWidth > 700 ? { topLeft: [$('card').getBoundingClientRect().right + 30, 40], bottomRight: [40, 40] } : {},
+});
+let data = null;
+function toast(t) { const el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2400); }
+function plural(n, f) { const a = n % 10, b = n % 100; return f[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2]; }
+
+async function load() {
+  try {
+    const r = await fetch('/api/maps/' + encodeURIComponent(id || ''));
+    if (!r.ok) throw new Error(r.status === 404 ? 'Такой карты нет. Проверьте ссылку.' : 'Карта не загрузилась. Обновите страницу.');
+    data = await r.json();
+  } catch (e) {
+    $('title').textContent = 'Карта не найдена';
+    $('sub').textContent = e.message;
+    document.querySelector('.actions').hidden = true;
+    return;
+  }
+  const title = data.title || 'Карта семьи';
+  $('title').textContent = title;
+  document.title = title + ' — MapHeritage';
+  const geo = data.events.filter(MapKit.hasGeo);
+  const years = data.events.map((e) => e.year).filter(Boolean);
+  const places = new Set(geo.map((e) => e.lat.toFixed(2) + ',' + e.lng.toFixed(2))).size;
+  $('sub').textContent = places + ' ' + plural(places, ['место', 'места', 'мест']) + (years.length ? ', ' + Math.min(...years) + '–' + Math.max(...years) : '');
+
+  const col = MapKit.colors(data.people);
+  const used = new Set(data.events.map((e) => e.personId));
+  const people = data.people.filter((p) => used.has(p.id));
+  $('legend').innerHTML = people.map((p) => `<li><i style="background:${col[p.id]}"></i>${esc(p.name)} <small>${esc(p.relation === 'я' ? '' : p.relation)}</small></li>`).join('');
+
+  $('chronicle').hidden = !data.events.length;
+  $('people').innerHTML = people.map((p) => {
+    const evts = MapKit.chrono(data.events.filter((e) => e.personId === p.id));
+    return `<article class="person"><h3 style="border-color:${col[p.id]}">${esc(p.name)}<small>${esc(p.relation === 'я' ? '' : p.relation)}</small></h3><ol>${
+      evts.map((e) => `<li><b>${esc(e.when || '—')}</b><span><strong>${esc(e.place)}</strong>${MapKit.TYPES[e.type] ? ', ' + MapKit.TYPES[e.type] : ''}${e.note ? '. ' + esc(e.note) : ''}</span></li>`).join('')
+    }</ol></article>`;
+  }).join('');
+
+  const mine = (() => { try { return (JSON.parse(localStorage.getItem('mh:maps')) || []).some((m) => m.id === id); } catch { return false; } })();
+  if (mine) { $('edit').hidden = false; $('edit').href = '/create?id=' + id; }
+  kit.render(data, { animate: true, stepMs: 600 });
+}
+
+$('play').onclick = () => data && kit.render(data, { animate: true, stepMs: 600 });
+$('print').onclick = () => { if (data) { kit.render(data, { animate: false }); setTimeout(() => print(), 400); } };
+$('share').onclick = async () => {
+  const url = location.origin + '/m/' + id;
+  if (navigator.share) { try { await navigator.share({ title: document.title, url }); return; } catch {} }
+  try { await navigator.clipboard.writeText(url); toast('Ссылка скопирована'); } catch { prompt('Ссылка на карту:', url); }
+};
+addEventListener('resize', () => kit.invalidate());
+load();
+</script>
+</body>
+</html>
