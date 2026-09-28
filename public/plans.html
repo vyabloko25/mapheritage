@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+Sans:wght@400;500;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/style.css">
+<title>Plans — MapHeritage</title>
+<style>
+  .top { display: flex; align-items: center; gap: 12px; padding: 14px clamp(16px, 4vw, 48px); }
+  .top .btn { margin-left: auto; }
+  main { max-width: 1040px; margin: 0 auto; padding: clamp(32px, 6vw, 80px) clamp(16px, 4vw, 48px) 80px; }
+  h1 { font-size: clamp(36px, 5vw, 56px); margin-bottom: 36px; }
+  .plans { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+  .plan { background: var(--card); border: 1px solid var(--rule); padding: 28px 26px 30px; position: relative; display: flex; flex-direction: column; }
+  .plan::before { content: ''; position: absolute; inset: 5px; border: 1px solid var(--rule); pointer-events: none; }
+  .plan.pro { border-color: var(--ink); } .plan.pro::before { border-color: var(--ink); }
+  .plan h2 { font-size: 30px; display: flex; align-items: baseline; justify-content: space-between; }
+  .plan h2 small { font: italic 18px var(--serif); color: var(--ink-2); }
+  .plan ul { margin: 18px 0 26px; padding-left: 20px; font: 17px/1.6 var(--serif); flex: 1; }
+  .plan .cur { font: italic 15px var(--serif); color: var(--red); }
+  .privacy { margin-top: 48px; font: 17px/1.6 var(--serif); color: var(--ink-2); max-width: 44em; }
+  @media (max-width: 760px) { .plans { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="3"/><path d="M32 4 L38 32 L32 60 L26 32 Z" fill="currentColor"/><path d="M32 4 L38 32 L32 32 Z" fill="#9B2F1F"/><path d="M4 32 L32 26 L60 32 L32 38 Z" fill="currentColor" opacity=".5"/></svg> MapHeritage</a><button class="langbtn" type="button" data-lang-toggle>RU</button><a class="btn small primary" href="/create" data-i18n="nav.create">Create a map</a></header>
+<main>
+  <h1 data-i18n="pl.title">Plans</h1>
+  <div class="plans">
+    <section class="plan"><h2><span data-i18n="pl.lite">Lite</span><small data-i18n="pl.free">Free</small></h2>
+      <ul><li data-i18n="pl.lite.1"></li><li data-i18n="pl.lite.2"></li><li data-i18n="pl.lite.3"></li><li id="liteN"></li></ul><p class="cur" id="curLite" hidden data-i18n="pl.current"></p><a class="btn" href="/create" id="liteBtn" data-i18n="hero.cta"></a></section>
+    <section class="plan pro"><h2><span data-i18n="pl.pro">Pro</span></h2>
+      <ul><li data-i18n="pl.pro.1"></li><li data-i18n="pl.pro.2"></li><li data-i18n="pl.pro.3"></li><li data-i18n="pl.pro.4"></li></ul><p class="cur" id="curPro" hidden data-i18n="pl.current"></p><p class="cur" id="reqDone" hidden data-i18n="pl.requested"></p><button class="btn primary" type="button" id="req" data-i18n="pl.request">I want Pro</button></section>
+  </div>
+  <p class="privacy"><b data-i18n="p.title"></b>. <span data-i18n="p.1"></span> <span data-i18n="p.2"></span></p>
+</main>
+<script src="/assets/i18n.js"></script><script src="/assets/account.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+async function paint() {
+  I18N.apply();
+  const me = Account.me || await Account.load(), n = (me.plans && me.plans.lite && me.plans.lite.exports) || 5;
+  $('liteN').textContent = I18N.t('pl.lite.4', { n });
+  const u = me.user;
+  $('curLite').hidden = !(u && u.plan === 'lite'); $('curPro').hidden = !(u && u.plan === 'pro');
+  $('reqDone').hidden = !(u && u.proRequested && u.plan !== 'pro');
+  $('req').hidden = !!(u && (u.plan === 'pro' || u.proRequested));
+  if (!u) $('req').textContent = I18N.t('pl.signin');
+}
+$('req').onclick = async () => {
+  if (!Account.me.user) return (location.href = '/create');
+  const r = await fetch('/api/auth/request-pro', { method: 'POST' });
+  if (r.ok) { await Account.load(); paint(); }
+};
+I18N.on(paint); paint();
+</script>
+</body>
+</html>
