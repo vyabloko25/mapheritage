@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+Sans:wght@400;500;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/style.css">
+<title>Family map — MapHeritage</title>
+<meta property="og:title" content="Family map">
+<meta property="og:description" content="A family’s story on one map — MapHeritage">
+<style>
+  .top { display: flex; align-items: center; gap: 12px; padding: 12px clamp(16px, 3vw, 40px); border-bottom: 1.5px solid var(--ink); flex-wrap: wrap; }
+  .top .acts { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .stage { background: var(--table); padding: clamp(12px, 2.5vw, 36px); display: flex; justify-content: center; min-height: 50vh; }
+  .chron { padding: clamp(48px, 7vw, 96px) clamp(16px, 4vw, 48px); max-width: 1320px; margin: 0 auto; }
+  .chron > h2 { font-size: clamp(32px, 4vw, 52px); margin-bottom: 34px; }
+  .people { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 44px 40px; }
+  .person h3 { font-size: 24px; display: flex; align-items: baseline; gap: 10px; padding-bottom: 10px; border-bottom: 1.5px solid var(--ink); margin-bottom: 4px; }
+  .person h3 i { width: 14px; height: 14px; border-radius: 50%; flex: none; border: 1px solid var(--ink); transform: translateY(1px); }
+  .person h3 small { font: italic 16px var(--serif); color: var(--ink-2); }
+  .person ol { list-style: none; margin: 0; padding: 0; }
+  .person li { display: grid; grid-template-columns: 5.4em 1fr; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+  .person li b { font-weight: 700; }
+  .person li span { color: var(--ink-2); font-size: 15px; }
+  .person li strong { color: var(--ink); font: 500 17px var(--serif); }
+  .cta { background: var(--ink); color: var(--card); padding: 38px clamp(16px, 4vw, 48px); display: flex; gap: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .cta p { margin: 0; font: 700 clamp(22px, 3vw, 32px)/1.1 var(--display); }
+  .cta .btn { border-color: var(--card); color: var(--card); }
+  .cta .btn:hover { background: var(--card); color: var(--ink); }
+  .empty { padding: 80px 20px; text-align: center; }
+  @media print { @page { margin: 10mm; } .top, .cta { display: none !important; } .stage { background: none; padding: 0; } .poster { box-shadow: none; } .person { break-inside: avoid; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="/"><svg width="30" height="30" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="26" fill="none" stroke="currentColor" stroke-width="3"/><path d="M32 4 L38 32 L32 60 L26 32 Z" fill="currentColor"/><path d="M32 4 L38 32 L32 32 Z" fill="#9B2F1F"/><path d="M4 32 L32 26 L60 32 L32 38 Z" fill="currentColor" opacity=".5"/></svg> MapHeritage</a>
+  <div class="acts" id="acts">
+    <button class="btn small primary" id="play" type="button" data-i18n="btn.play">Play journey</button>
+    <button class="btn small" id="download" type="button" data-i18n="btn.download">Download image</button>
+    <button class="btn small" id="share" type="button" data-i18n="btn.share">Share</button>
+    <button class="btn small" id="print" type="button" data-i18n="btn.print">Print</button>
+    <a class="btn small" id="edit" href="#" hidden data-i18n="btn.continue">Edit map</a>
+    <button class="langbtn" type="button" data-lang-toggle>RU</button>
+  </div>
+</header>
+<div class="stage" id="stage"></div>
+<section class="chron" id="chron" hidden><h2 data-i18n="chronicle">Chronicle</h2><div class="people" id="people"></div></section>
+<div class="cta"><p data-i18n="cta.own">Make a chart of your own family.</p><a class="btn big" href="/create" data-i18n="hero.cta">Create your map</a></div>
+<div class="toast" id="toast" role="status"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/assets/i18n.js"></script>
+<script src="/assets/poster.js"></script>
+<script>
+const $ = (id) => document.getElementById(id), esc = Poster.esc, { t } = I18N;
+const id = location.pathname.split('/')[2] || new URLSearchParams(location.search).get('id');
+const poster = Poster.create($('stage'), { scrollWheelZoom: true });
+let data = null;
+function toast(m) { const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); }
+const width = () => { const r = { landscape: 1600 / 1131, portrait: 1131 / 1600, square: 1 }[(data.design || {}).format || 'landscape']; const s = $('stage'); return Math.floor(Math.min(s.clientWidth - 2 * parseFloat(getComputedStyle(s).paddingLeft), (innerHeight - 90) * r)); };
+function paint(o = {}) { if (data) poster.render(data, data.design, { width: width(), keepView: o.keepView, animate: o.animate }); }
+function chronicle() {
+  I18N.apply();
+  if (!data) return;
+  document.title = (data.title || t('familyMap')) + ' — MapHeritage';
+  const ds = Poster.design(data.design, data.mode), col = Poster.colors(data.people, ds.palette), used = new Set(data.events.map((e) => e.personId));
+  const people = data.people.filter((p) => used.has(p.id));
+  $('chron').hidden = !people.length;
+  $('people').innerHTML = people.map((p) => `<article class="person"><h3><i style="background:${col[p.id]}"></i>${esc(p.name)}<small>${esc(Poster.rel(p.relation))}</small></h3><ol>${
+    Poster.chrono(data.events.filter((e) => e.personId === p.id)).map((e) => `<li><b>${esc(e.when || '—')}</b><span><strong>${esc(e.place)}</strong>${e.type !== 'other' ? ', ' + esc(t('type.' + e.type)) : ''}${e.note ? '. ' + esc(e.note) : ''}</span></li>`).join('')}</ol></article>`).join('');
+}
+async function load() {
+  try {
+    const r = await fetch('/api/maps/' + encodeURIComponent(id || ''));
+    if (!r.ok) throw new Error(r.status === 404 ? 'notFound.p' : 'loadFail');
+    data = await r.json();
+  } catch (e) {
+    $('acts').querySelectorAll('.btn').forEach((b) => (b.hidden = true));
+    $('stage').innerHTML = `<div class="empty"><h2>${esc(t('notFound.t'))}</h2><p>${esc(t(e.message.includes('.') ? e.message : 'loadFail'))}</p></div>`;
+    return;
+  }
+  chronicle(); paint({ animate: true });
+  try { if ((JSON.parse(localStorage.getItem('mh:maps')) || []).some((m) => m.id === id)) { $('edit').hidden = false; $('edit').href = '/create?id=' + id + '&tab=design'; } } catch {}
+}
+$('play').onclick = () => paint({ animate: true, keepView: true });
+$('print').onclick = () => print();
+$('download').onclick = async () => {
+  if (!data || !data.events.some(Poster.hasGeo)) return toast(t('toast.emptyMap'));
+  const b = $('download'); b.disabled = true; b.textContent = t('btn.exporting');
+  try { const { blob, tiles } = await Poster.exportPNG(data, data.design, { view: poster.currentView(), width: 3200 }); Poster.download(blob, Poster.slug(data.title || 'family-map') + '.png'); toast(t(tiles ? 'toast.exported' : 'toast.noTiles')); }
+  catch (e) { toast(e.message || 'Export failed'); }
+  b.disabled = false; b.textContent = t('btn.download');
+};
+$('share').onclick = async () => {
+  const url = location.origin + '/m/' + id;
+  if (navigator.share) { try { await navigator.share({ title: document.title, url }); return; } catch {} }
+  try { await navigator.clipboard.writeText(url); toast(t('toast.copied')); } catch { prompt(t('btn.share'), url); }
+};
+I18N.on(() => { chronicle(); paint({ keepView: true }); });
+let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => paint({ keepView: true }), 150); });
+I18N.apply(); load();
+</script>
+</body>
+</html>

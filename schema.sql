@@ -1,0 +1,2 @@
+CREATE TABLE IF NOT EXISTS maps (id TEXT PRIMARY KEY, token TEXT NOT NULL, title TEXT, state TEXT NOT NULL, messages TEXT NOT NULL, turns INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER);
+CREATE TABLE IF NOT EXISTS geocache (q TEXT PRIMARY KEY, lat REAL, lng REAL, created_at INTEGER);
