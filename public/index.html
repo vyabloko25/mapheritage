@@ -19,13 +19,19 @@
   .hero { padding: clamp(24px, 4vw, 56px) clamp(16px, 4vw, 48px) 0; }
   .hero-head { display: grid; grid-template-columns: 6fr 5fr; gap: clamp(24px, 4vw, 64px); align-items: end; max-width: 1400px; margin: 0 auto clamp(28px, 4vw, 48px); }
   .kicker { font: italic 19px var(--serif); color: var(--red); margin: 0 0 14px; }
-  .hero h1 { font-size: clamp(44px, 6vw, 88px); line-height: 1; }
+  /* The title always sits on exactly two lines: the font shrinks with the column so the longer line fits. */
+  .hero-title { container-type: inline-size; min-width: 0; }
+  .hero h1 { font-size: min(88px, 100cqi / 9.2); line-height: 1.02; margin: 0; }
+  .hero h1 span { display: block; white-space: nowrap; }
+  @media (max-width: 1000px) { .hero-head { grid-template-columns: 1fr !important; } .hero h1 { font-size: min(76px, 100cqi / 9.2); } }
   .top .langbtn { margin-left: -4px; }
   .founder { background: var(--card); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
   .founder .wrap { display: grid; grid-template-columns: 4fr 7fr; gap: clamp(28px, 5vw, 80px); align-items: start; }
   .letter p { font: 20px/1.7 var(--serif); margin: 0 0 1.1em; max-width: 36em; }
   .letter .drop::first-letter { font: 700 3.4em/0.8 var(--display); float: left; margin: .08em .1em 0 0; color: var(--red); }
-  .letter .sign { font-style: italic; color: var(--ink-2); }
+  .letter .sign { display: grid; gap: 4px; margin-top: 1.6em; }
+  .letter .sign .sig { font: 400 clamp(34px, 4vw, 44px)/1.1 'Marck Script', var(--serif); color: var(--ink); }
+  .letter .sign .role { font: italic 17px var(--serif); color: var(--ink-2); }
   .card .ways { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
   .cards { grid-template-columns: repeat(3, 1fr) !important; }
   .privacy { background: var(--ink); color: var(--card); }
@@ -82,7 +88,7 @@
 </header>
 <section class="hero">
   <div class="hero-head">
-    <h1 data-i18n="hero.title">Every family has its own geography.</h1>
+    <div class="hero-title"><h1><span data-i18n="hero.t1">Every family has</span> <span data-i18n="hero.t2">its own geography.</span></h1></div>
     <div class="hero-lead"><p data-i18n="hero.lead"></p>
       <div class="acts"><a class="btn big primary" href="/create" data-i18n="hero.cta">Make your family’s map</a><a class="linkbtn" href="#story" data-i18n="hero.cta2">How it began</a></div></div>
   </div>
@@ -91,7 +97,7 @@
 <main>
   <section class="founder" id="story"><div class="wrap">
     <h2 data-i18n="f.title">How it began</h2>
-    <div class="letter"><p class="drop" data-i18n="f.p1"></p><p data-i18n="f.p2"></p><p data-i18n="f.p3"></p><p data-i18n="f.p4"></p><p class="sign">— <span data-i18n="f.sign"></span></p></div>
+    <div class="letter"><p class="drop" data-i18n="f.p1"></p><p data-i18n="f.p2"></p><p data-i18n="f.p3"></p><p data-i18n="f.p4"></p><p class="sign"><span class="sig" data-i18n="f.signName">Vasily Yablokov</span><span class="role" data-i18n="f.sign">Founder of MapHeritage</span></p></div>
   </div></section>
   <section id="how"><div class="wrap">
     <h2 data-i18n="s.title">Three ways in</h2>
