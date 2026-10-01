@@ -1,0 +1,1 @@
+ALTER TABLE geocache ADD COLUMN kind TEXT;

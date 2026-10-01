@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS maps (id TEXT PRIMARY KEY, token TEXT NOT NULL, title TEXT, state TEXT NOT NULL, messages TEXT NOT NULL, turns INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER, owner_id TEXT, shared INTEGER DEFAULT 0);
-CREATE TABLE IF NOT EXISTS geocache (q TEXT PRIMARY KEY, lat REAL, lng REAL, created_at INTEGER);
+CREATE TABLE IF NOT EXISTS geocache (q TEXT PRIMARY KEY, lat REAL, lng REAL, kind TEXT, created_at INTEGER);
 CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE, name TEXT, pass_hash TEXT, salt TEXT, google_sub TEXT UNIQUE, plan TEXT DEFAULT 'lite', pro_requested INTEGER DEFAULT 0, created_at INTEGER, terms_accepted_at INTEGER, terms_version TEXT, age_confirmed INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS snapshots (map_id TEXT NOT NULL, idx INTEGER NOT NULL, state TEXT NOT NULL, PRIMARY KEY (map_id, idx));
