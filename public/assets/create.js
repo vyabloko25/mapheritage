@@ -17,6 +17,7 @@
     onSelect: (el, box, dbl) => inspector(el, dbl),
     onDesign: () => { saveDesignSoon(); if (poster.selected) inspector(poster.selected); },
   });
+  window.MHPoster = poster; // handy for debugging in the console
   function fitWidth() {
     const st = $('stage'), r = { landscape: 1600 / 1131, portrait: 1131 / 1600, square: 1 }[design ? design.format : 'landscape'];
     return Math.max(280, Math.floor(Math.min(st.clientWidth - 32, (st.clientHeight - 32) * r)));
@@ -277,55 +278,106 @@
   const get = (path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), design);
   function set(path, val) { const ks = path.split('.'); let o = design; ks.slice(0, -1).forEach((k) => (o = o[k] ||= {})); o[ks[ks.length - 1]] = val; }
   const seg = (path, values, prefix) => `<div class="seg">${values.map((v) => `<button type="button" data-set="${path}" data-val="${v}" aria-pressed="${get(path) === v}">${esc(t(prefix + v))}</button>`).join('')}</div>`;
-  const range = (path, min, max, step) => `<input type="range" data-set="${path}" data-num="1" min="${min}" max="${max}" step="${step}" value="${get(path)}">`;
-  const color = (path) => `<input type="color" data-set="${path}" value="${get(path)}">`;
+  const sel = (path, values, prefix) => `<select data-set="${path}">${opts(values.map((v) => [v, t(prefix + v)]), get(path))}</select>`;
+  const range = (path, min, max, step) => `<input type="range" data-set="${path}" data-num="1" min="${min}" max="${max}" step="${step}" value="${get(path) ?? min}">`;
+  const hex = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888');
+  const color = (path) => `<input type="color" data-set="${path}" value="${hex(get(path))}">`;
+  const check = (path, label) => `<label><input type="checkbox" data-set="${path}" ${get(path) ? 'checked' : ''}> ${esc(t(label))}</label>`;
   const ctl = (label, html) => `<div class="ctl"><span>${esc(t(label))}</span>${html}</div>`;
+  const lockB = () => (pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`);
+  const proSec = (title, html, open) => `<details class="dsec ${pro() ? '' : 'locked-sec'}" ${open ? 'open' : ''}><summary>${esc(t(title))}${lockB()}</summary><div class="dbody">${html}</div></details>`;
+  const SHOW_GROUPS = {
+    'd.g.chart': ['frame', 'cartouche', 'legend', 'compass', 'scale', 'labels', 'numbers', 'insets'],
+    'd.g.map': ['graticule', 'degrees', 'rhumbs', 'relief', 'waterlines', 'depth', 'shadow', 'stipple', 'rivers', 'borders'],
+    'd.g.mood': ['ships', 'waves', 'aging', 'texture', 'vignette'],
+  };
+  const openSecs = new Set(store.get('mh:dsec', ['d.colors']));
   function renderDesign() {
     if (!state) return;
-    const pv = { discovery: 'linear-gradient(90deg,#EADFC4 0 40%,#D9BF8C 40% 70%,#A8331F 70% 80%,#1F4A6E 80%)', admiralty: 'linear-gradient(90deg,#F3F0E6 0 40%,#BCD2DA 40% 70%,#B22A1E 70% 80%,#1B3F8F 80%)', night: 'linear-gradient(90deg,#141A22 0 40%,#2A3B52 40% 70%,#E8674A 70% 80%,#D4A64A 80%)', atlas: 'linear-gradient(90deg,#FFFFFF 0 40%,#E4E7E2 40% 70%,#E0301E 70% 80%,#1F3FBF 80%)' };
     const places = Object.values(Poster.model(state, design).places);
     const picked = Array.isArray(design.insets.pick) ? new Set(design.insets.pick) : null;
-    const fonts = [['alegreya', 'Alegreya'], ['oldstandard', 'Old Standard'], ['garamond', 'EB Garamond'], ['jost', 'Jost']];
+    const fonts = [['alegreya', 'Alegreya'], ['oldstandard', 'Old Standard'], ['garamond', 'EB Garamond'], ['cormorant', 'Cormorant'], ['jost', 'Jost']];
+    const ships = poster.ships, autoShips = !Array.isArray(design.ships);
+    const texts = design.texts || [];
     $('design').innerHTML = `
-      <section><h3>${esc(t('d.presets'))}</h3><div class="presets">${Object.keys(pv).map((k) => `<button type="button" data-preset="${k}" aria-pressed="${design.preset === k}"><i style="background:${pv[k]}"></i><span>${esc(t('d.preset.' + k))}${allowedPresets().includes(k) ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</span></button>`).join('')}</div>
-        <p class="note" style="margin-top:10px">${esc(t('insp.dragHint'))}</p></section>
-      <section class="${pro() ? '' : 'locked-sec'}"><h3>${esc(t('d.base'))}${pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</h3>${seg('basemap', ['light', 'dark', 'voyager'], 'd.base.')}<div style="height:10px"></div>
-        ${ctl('d.tint', color('tint'))}${ctl('d.tintAmt', range('tintAmt', 0, 1, 0.05))}${ctl('d.sat', range('sat', 0, 1.6, 0.05))}${ctl('d.bright', range('bright', 0.6, 1.5, 0.02))}${ctl('d.contrast', range('contrast', 0.6, 1.5, 0.02))}</section>
-      <section class="${pro() ? '' : 'locked-sec'}"><h3>${esc(t('d.colors'))}${pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</h3>${ctl('d.paper', color('paper'))}${ctl('d.ink', color('ink'))}${ctl('d.accent', color('accent'))}${ctl('d.frameColor', color('frameColor'))}
-        <div class="ctl" style="grid-template-columns:1fr"><span>${esc(t('d.palette'))}</span><div class="palette">${design.palette.map((c, i) => `<input type="color" data-pal="${i}" value="${c}">`).join('')}</div></div></section>
-      <section class="${pro() ? '' : 'locked-sec'}"><h3>${esc(t('d.type'))}${pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</h3>${ctl('d.font', `<select data-set="font">${opts(fonts, design.font)}</select>`)}${ctl('d.labelSize', range('labelSize', 0.6, 1.8, 0.05))}</section>
+      <section><h3>${esc(t('d.presets'))}</h3><div class="presets">${Poster.PRESET_KEYS.map((k) => `<button type="button" data-preset="${k}" aria-pressed="${design.preset === k}"><i style="background:${Poster.swatch(k)}"></i><span>${esc(t('d.preset.' + k))}</span></button>`).join('')}</div>
+        <p class="note" style="margin-top:10px">${esc(t(pro() ? 'insp.dragHint' : 'd.liteHint'))}</p></section>
       <section><h3>${esc(t('d.layout'))}</h3>${ctl('d.format', seg('format', ['landscape', 'portrait', 'square'], 'd.format.'))}
-        ${ctl('d.panel', `<select data-set="panel">${opts(['auto', 'tree', 'chronicle', 'none'].map((x) => [x, t('d.panel.' + x)]), design.panel)}</select>`)}
+        ${ctl('d.panel', sel('panel', ['auto', 'tree', 'chronicle', 'none'], 'd.panel.'))}
         ${ctl('d.subtitle', `<input data-set="subtitle" value="${esc(design.subtitle)}" placeholder="${esc(t('d.subtitle.ph'))}">`)}</section>
-      <section class="${pro() ? '' : 'locked-sec'}"><h3>${esc(t('d.routes'))}${pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</h3>${ctl('d.routes.style', seg('routes.style', ['solid', 'dashed', 'dotted'], 'd.style.'))}${ctl('d.routes.width', range('routes.width', 1, 7, 0.2))}${ctl('d.routes.curve', range('routes.curve', 0, 0.45, 0.01))}
-        <div class="checks"><label><input type="checkbox" data-set="routes.arrows" ${design.routes.arrows ? 'checked' : ''}> ${esc(t('d.routes.arrows'))}</label></div></section>
-      <section><h3>${esc(t('d.elements'))}</h3><div class="checks">${Object.keys(design.show).map((k) => `<label><input type="checkbox" data-set="show.${k}" ${design.show[k] ? 'checked' : ''}> ${esc(t('d.show.' + k))}</label>`).join('')}</div></section>
-      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 8, 15, 0.5))}</div>
+      <section><h3>${esc(t('d.elements'))}</h3>${Object.entries(SHOW_GROUPS).map(([g, ks]) => `<p class="note grp">${esc(t(g))}</p><div class="checks">${ks.map((k) => check('show.' + k, 'd.show.' + k)).join('')}</div>`).join('')}</section>
+      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 4, 10, 0.25))}</div>
         <div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="insAuto" ${picked ? '' : 'checked'}> ${esc(t('d.insets.auto'))}</label></div>
         ${picked ? `<div class="picks">${places.map((p) => `<label><input type="checkbox" data-pick="${p.key}" ${picked.has(p.key) ? 'checked' : ''}> ${esc(p.e.place)} <small>${esc(Poster.span(Poster.years(p.list)))}</small></label>`).join('')}</div>` : ctl('d.insets.max', range('insets.max', 0, 16, 1))}</section>
+      <h3 class="prohead">${esc(t('d.fine'))}${lockB()}</h3>
+      ${pro() ? '' : `<p class="note">${esc(t('d.fineLite'))} <a href="/plans">${esc(t('pl.more'))}</a></p>`}
+      ${proSec('d.colors', `${ctl('d.paper', color('paper'))}${ctl('d.sea', color('sea'))}${ctl('d.land', color('land'))}${ctl('d.ink', color('ink'))}${ctl('d.accent', color('accent'))}${ctl('d.frameColor', color('frameColor'))}
+        <div class="ctl" style="grid-template-columns:1fr"><span>${esc(t('d.palette'))}</span><div class="palette">${design.palette.map((c, i) => `<input type="color" data-pal="${i}" value="${hex(c)}">`).join('')}</div></div>`, openSecs.has('d.colors'))}
+      ${proSec('d.type', `${ctl('d.font', `<select data-set="font">${opts(fonts, design.font)}</select>`)}${ctl('d.labelSize', range('labelSize', 0.6, 1.8, 0.05))}
+        ${ctl('d.labels.style', seg('labels.style', ['italic', 'roman', 'caps'], 'd.labels.'))}${ctl('d.labels.halo', seg('labels.halo', ['halo', 'box', 'none'], 'd.halo.'))}`, openSecs.has('d.type'))}
+      ${proSec('d.water', `${ctl('d.water.n', range('water.n', 0, 10, 1))}${ctl('d.water.gap', range('water.gap', 1.5, 6, 0.1))}${ctl('d.water.alpha', range('water.alpha', 0, 1, 0.02))}${ctl('d.water.color', color('water.color'))}
+        ${ctl('d.relief.amt', range('relief.amt', 0, 1.5, 0.05))}${ctl('d.tex.type', sel('tex.type', ['coast', 'stipple', 'hatch', 'none'], 'd.tex.'))}${ctl('d.tex.alpha', range('tex.alpha', 0, 1, 0.02))}
+        ${ctl('d.shadow.blur', range('shadow.blur', 0, 24, 1))}${ctl('d.borders.style', sel('borders.style', ['dashed', 'dotted', 'dashdot', 'solid'], 'd.border.'))}
+        ${ctl('d.aging.amount', range('aging.amount', 0, 1, 0.02))}<div class="checks">${check('rhumbs.network', 'd.rhumbs.network')}</div>`, openSecs.has('d.water'))}
+      ${proSec('d.furniture', `${ctl('d.cartouche.style', sel('cartouche.style', ['frame', 'scroll', 'medallion', 'block'], 'd.cart.'))}${ctl('d.compass.style', sel('compass.style', ['ornate', 'simple', 'portolan', 'modern'], 'd.comp.'))}
+        ${ctl('d.frame.style', sel('frame.style', ['degrees', 'double', 'ornament', 'line'], 'd.frame.'))}${ctl('d.scale.style', sel('scale.style', ['checker', 'line'], 'd.scale.'))}`, openSecs.has('d.furniture'))}
+      ${proSec('d.routes', `${ctl('d.routes.style', sel('routes.style', ['solid', 'dashed', 'dotted', 'double', 'casing', 'hand'], 'd.style.'))}${ctl('d.routes.width', range('routes.width', 1, 7, 0.2))}${ctl('d.routes.curve', range('routes.curve', 0, 0.45, 0.01))}
+        <div class="checks">${check('routes.arrows', 'd.routes.arrows')}</div>
+        ${ctl('d.markers.style', sel('markers.style', ['ring', 'dot', 'square', 'star', 'pin', 'town'], 'd.mark.'))}${ctl('d.markers.size', range('markers.size', 0.6, 1.8, 0.05))}`, openSecs.has('d.routes'))}
+      ${proSec('d.ships', `${autoShips ? ctl('d.ships.auto', range('autoShips', 0, 4, 1)) : `<p class="note">${esc(t('d.ships.manual'))} <button class="linkbtn" type="button" data-act="shipsAuto">${esc(t('d.ships.backAuto'))}</button></p>`}
+        <ul class="rows">${ships.map((s, i) => `<li class="mini"><select data-ship="${i}" data-k="type">${opts(Poster.SHIP_TYPES.map((x) => [x, t('ship.' + x)]), s.type)}</select><input type="range" data-ship="${i}" data-k="s" min="0.5" max="2" step="0.05" value="${s.s || 1}" aria-label="${esc(t('insp.size'))}"><button class="btn small" type="button" data-shipflip="${i}" title="${esc(t('d.ships.flip'))}">⇋</button><button class="btn small" type="button" data-shipdel="${i}" title="${esc(t('f.delete'))}">×</button></li>`).join('')}</ul>
+        <div class="acts"><button class="btn small" type="button" data-act="addShip">${esc(t('d.ships.add'))}</button></div><p class="note">${esc(t('d.ships.hint'))}</p>`, openSecs.has('d.ships'))}
+      ${proSec('d.texts', `<ul class="rows">${texts.map((x, i) => `<li class="mini tx"><input data-text="${i}" data-k="text" value="${esc(x.text)}" placeholder="${esc(t('d.texts.ph'))}"><select data-text="${i}" data-k="style">${opts(['italic', 'caps', 'script', 'roman'].map((v) => [v, t('d.tstyle.' + v)]), x.style || 'italic')}</select>
+          <input type="range" data-text="${i}" data-k="size" min="12" max="90" step="1" value="${x.size || 26}" aria-label="${esc(t('insp.size'))}"><input type="range" data-text="${i}" data-k="rot" min="-90" max="90" step="1" value="${x.rot || 0}" aria-label="${esc(t('d.texts.rot'))}"><button class="btn small" type="button" data-textdel="${i}">×</button></li>`).join('')}</ul>
+        <div class="acts"><button class="btn small" type="button" data-act="addText">${esc(t('d.texts.add'))}</button></div><p class="note">${esc(t('d.texts.hint'))}</p>`, openSecs.has('d.texts'))}
       <section><div class="acts" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn small" type="button" data-act="resetView">${esc(t('d.resetView'))}</button><button class="btn small" type="button" data-act="resetStyle">${esc(t('d.resetStyle'))}</button></div></section>`;
   }
+  $('design').addEventListener('toggle', (e) => {
+    const d = e.target; if (d.tagName !== 'DETAILS') return;
+    const k = [...d.querySelectorAll('summary')][0].textContent; // stable enough: store by index instead
+    const idx = [...$('design').querySelectorAll('details')].indexOf(d), keys = ['d.colors', 'd.type', 'd.water', 'd.furniture', 'd.routes', 'd.ships', 'd.texts'];
+    if (keys[idx]) { d.open ? openSecs.add(keys[idx]) : openSecs.delete(keys[idx]); store.set('mh:dsec', [...openSecs]); }
+    void k;
+  }, true);
+  const needPro = () => { if (pro()) return false; lockedToast(); return true; };
   $('design').addEventListener('input', (e) => {
-    const el = e.target;
-    if (el.dataset.pal !== undefined) { design.palette[+el.dataset.pal] = el.value; return designChanged(); }
-    if (!el.dataset.set || el.type === 'checkbox') return;
-    set(el.dataset.set, el.dataset.num ? +el.value : el.value); designChanged();
+    const el = e.target, d = el.dataset;
+    if (d.pal !== undefined) { design.palette[+d.pal] = el.value; return designChanged(); }
+    if (d.ship !== undefined) { const s = poster.ensureShips()[+d.ship]; if (!s) return; s[d.k] = d.k === 's' ? +el.value : el.value; return designChanged(); }
+    if (d.text !== undefined) { const x = design.texts[+d.text]; x[d.k] = el.type === 'range' ? +el.value : el.value; return designChanged(); }
+    if (!d.set || el.type === 'checkbox' || el.tagName === 'SELECT') return;
+    set(d.set, d.num ? +el.value : el.value); designChanged();
   });
   $('design').addEventListener('change', (e) => {
     const el = e.target;
     if (el.id === 'insAuto') { design.insets.pick = el.checked ? null : Poster.model(state, design).insets.map((p) => p.key); renderDesign(); return designChanged(); }
     if (el.dataset.pick) { const s = new Set(design.insets.pick || []); el.checked ? s.add(el.dataset.pick) : s.delete(el.dataset.pick); design.insets.pick = [...s]; return designChanged(); }
+    if (el.dataset.ship !== undefined && el.tagName === 'SELECT') { poster.ensureShips()[+el.dataset.ship].type = el.value; return designChanged(); }
+    if (el.dataset.text !== undefined && el.tagName === 'SELECT') { design.texts[+el.dataset.text].style = el.value; return designChanged(); }
     if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); return designChanged(); }
     if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); }
   });
+  // Switching the style keeps the content and layout the person chose, but takes colours and drawing from the new style.
+  const KEEP = ['format', 'subtitle', 'view', 'panel', 'panelSize', 'pos', 'insetCfg', 'legendTitle', 'panelTitle', 'texts', 'ships', 'labelSize'];
+  function applyPreset(name) {
+    const keep = {}; for (const k of KEEP) if (design[k] !== undefined) keep[k] = JSON.parse(JSON.stringify(design[k]));
+    const pick = design.insets.pick, max = design.insets.max;
+    design = Poster.design({ preset: name, ...keep }, state.mode); design.insets.pick = pick; design.insets.max = max;
+  }
   $('design').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.preset && !allowedPresets().includes(b.dataset.preset)) return lockedToast();
-    if (b.dataset.preset) { const v = design.view, pick = design.insets.pick; design = Poster.design({ preset: b.dataset.preset }, state.mode); design.view = v; design.insets.pick = pick; renderDesign(); return designChanged(); }
-    if (b.dataset.set) { set(b.dataset.set, b.dataset.val); renderDesign(); return designChanged({ refit: b.dataset.set === 'format' && !design.view }); }
-    if (b.dataset.act === 'resetView') { design.view = null; paint({ keepView: false }); return saveDesignSoon(); }
-    if (b.dataset.act === 'resetStyle') { const v = design.view; design = Poster.design({ preset: design.preset }, state.mode); design.view = v; renderDesign(); designChanged(); }
-    if (b.dataset.act === 'resetView') poster.select(null);
+    const d = b.dataset;
+    if (d.preset) { applyPreset(d.preset); renderDesign(); return designChanged(); }
+    if (d.set) { set(d.set, d.val); renderDesign(); return designChanged({ refit: d.set === 'format' && !design.view }); }
+    if (d.act === 'resetView') { design.view = null; poster.select(null); paint({ keepView: false }); return saveDesignSoon(); }
+    if (d.act === 'resetStyle') { applyPreset(design.preset); renderDesign(); return designChanged(); }
+    if ((d.act === 'addShip' || d.act === 'addText' || d.act === 'shipsAuto' || d.shipflip || d.shipdel || d.textdel) && needPro()) return;
+    if (d.act === 'addShip') { design.show.ships = true; const at = poster.seaSpot(); poster.ensureShips().push({ type: design.shipTypes[0] || 'galleon', x: at.x, y: at.y, s: 1, flip: at.x > 0.5 }); renderDesign(); designChanged(); return poster.select('ship:' + (design.ships.length - 1)); }
+    if (d.act === 'shipsAuto') { design.ships = null; poster.select(null); designChanged(); return renderDesign(); }
+    if (d.shipflip) { const s = poster.ensureShips()[+d.shipflip]; s.flip = !s.flip; return designChanged(); }
+    if (d.shipdel) { poster.ensureShips().splice(+d.shipdel, 1); poster.select(null); designChanged(); return renderDesign(); }
+    if (d.act === 'addText') { (design.texts ||= []).push({ text: t('d.texts.sample'), x: 0.5, y: 0.35, size: 30, rot: 0, style: 'caps' }); renderDesign(); designChanged(); return poster.select('text:' + (design.texts.length - 1)); }
+    if (d.textdel) { design.texts.splice(+d.textdel, 1); poster.select(null); designChanged(); return renderDesign(); }
   });
 
   // ---------- import ----------
@@ -402,24 +454,40 @@
     let html = '';
     if (el === 'cartouche') html = `<label>${esc(t('insp.title'))}<input data-ititle value="${esc(state.title)}" placeholder="${esc(t('title.ph'))}"></label>
       <label>${esc(t('insp.subtitle'))}<input data-ip="subtitle" value="${esc(design.subtitle)}" placeholder="${esc(t('d.subtitle.ph'))}"></label>
+      <label>${esc(t('insp.style'))}${lock}<select data-ip="cartouche.style" ${dis}>${opts(['frame', 'scroll', 'medallion', 'block'].map((x) => [x, t('d.cart.' + x)]), design.cartouche.style)}</select></label>
       <label>${esc(t('insp.size'))}${lock}${rng('cartouche.size', 0.6, 1.6, 0.05, design.cartouche.size)}</label><div class="acts">${reset(el)}${hide(el)}</div>`;
     else if (el === 'legend') html = `<label>${esc(t('insp.heading'))}${lock}<input data-ip="legendTitle" value="${esc(design.legendTitle)}" placeholder="${esc(t('p.legend'))}" ${dis}></label><div class="acts">${reset(el)}${hide(el)}</div>`;
     else if (el === 'compass') html = `<label>${esc(t('insp.size'))}${lock}${rng('compass.size', 0.5, 2, 0.05, design.compass.size)}</label>
-      <label>${esc(t('insp.style'))}${lock}<select data-ip="compass.style" ${dis}>${opts([['ornate', t('insp.ornate')], ['simple', t('insp.simple')]], design.compass.style)}</select></label><div class="acts">${reset(el)}${hide(el)}</div>`;
+      <label>${esc(t('insp.style'))}${lock}<select data-ip="compass.style" ${dis}>${opts(['ornate', 'simple', 'portolan', 'modern'].map((x) => [x, t('d.comp.' + x)]), design.compass.style)}</select></label><div class="acts">${reset(el)}${hide(el)}</div>`;
     else if (el === 'scale') html = `<label>${esc(t('insp.units'))}${lock}<select data-ip="scale.units" ${dis}>${opts([['km', t('insp.km')], ['mi', t('insp.mi')]], design.scale.units)}</select></label>
       <label>${esc(t('insp.size'))}${lock}${rng('scale.size', 0.6, 2, 0.05, design.scale.size)}</label><div class="acts">${reset(el)}${hide(el)}</div>`;
     else if (el === 'panel') html = `<label>${esc(t('insp.type'))}<select data-ip="panel">${opts(['auto', 'tree', 'chronicle', 'none'].map((x) => [x, t('d.panel.' + x)]), design.panel)}</select></label>
       <label>${esc(t('insp.width'))}${lock}${rng('panelSize', 0.2, 0.5, 0.01, design.panelSize)}</label>
       <label>${esc(t('insp.heading'))}${lock}<input data-ip="panelTitle" value="${esc(design.panelTitle)}" ${dis}></label>`;
+    else if (el.startsWith('ship:')) {
+      const i = +el.slice(5), sh = poster.ships[i]; if (!sh) { box.hidden = true; return; }
+      html = `<label>${esc(t('d.ships.type'))}${lock}<select data-iship="type" ${dis}>${opts(Poster.SHIP_TYPES.map((x) => [x, t('ship.' + x)]), sh.type)}</select></label>
+        <label>${esc(t('insp.size'))}${lock}<input type="range" data-iship="s" min="0.5" max="2" step="0.05" value="${sh.s || 1}" ${dis}></label>
+        <div class="acts"><button class="btn small" type="button" data-ishipflip ${dis}>${esc(t('d.ships.flip'))}</button><button class="btn small" type="button" data-ishipdel ${dis}>${esc(t('f.delete'))}</button></div>`;
+    } else if (el.startsWith('text:')) {
+      const x = (design.texts || [])[+el.slice(5)]; if (!x) { box.hidden = true; return; }
+      html = `<label>${esc(t('d.texts.text'))}<input data-itext="text" value="${esc(x.text)}"></label>
+        <label>${esc(t('insp.style'))}<select data-itext="style">${opts(['italic', 'caps', 'script', 'roman'].map((v) => [v, t('d.tstyle.' + v)]), x.style || 'italic')}</select></label>
+        <label>${esc(t('insp.size'))}<input type="range" data-itext="size" min="12" max="90" step="1" value="${x.size || 26}"></label>
+        <label>${esc(t('d.texts.rot'))}<input type="range" data-itext="rot" min="-90" max="90" step="1" value="${x.rot || 0}"></label>
+        <label>${esc(t('d.texts.spacing'))}<input type="range" data-itext="spacing" min="0" max="0.8" step="0.02" value="${x.spacing ?? 0.12}"></label>
+        <label>${esc(t('f.color'))}<input type="color" data-itext="color" value="${/^#[0-9a-f]{6}$/i.test(x.color || '') ? x.color : design.ink}"></label>
+        <div class="acts"><button class="btn small" type="button" data-itextdel>${esc(t('f.delete'))}</button></div>`;
+    }
     else if (el.startsWith('inset:')) {
       const b = poster.boxes[el]; if (!b) { box.hidden = true; return; }
       const key = b.key, cfg = (design.insetCfg || {})[key] || {}, pl = Poster.model(state, design).places[key];
       html = `<p>${esc(t('insp.panHint'))}</p><label>${esc(t('insp.label'))}${lock}<input data-ilabel="${key}" value="${esc(cfg.label || '')}" placeholder="${esc(pl ? pl.e.place : '')}" ${dis}></label>
-        <label>${esc(t('insp.detail'))}${lock}<input type="range" data-izoom="${key}" min="7" max="16" step="0.25" value="${Number.isFinite(cfg.z) ? cfg.z : design.insets.zoom}" ${dis}></label>
+        <label>${esc(t('insp.detail'))}${lock}<input type="range" data-izoom="${key}" min="4" max="10" step="0.25" value="${Number.isFinite(cfg.z) ? cfg.z : design.insets.zoom}" ${dis}></label>
         <div class="acts"><button class="btn small" type="button" data-imove="-1" data-key="${key}">←</button><button class="btn small" type="button" data-imove="1" data-key="${key}">→</button>
         <button class="btn small" type="button" data-ireset-inset="${key}" ${dis}>${esc(t('insp.resetInset'))}</button><button class="btn small" type="button" data-iremove="${key}">${esc(t('insp.remove'))}</button></div>`;
     }
-    const name = el.startsWith('inset:') ? t('insp.inset') : t(NAMES[el]);
+    const name = el.startsWith('inset:') ? t('insp.inset') : el.startsWith('ship:') ? t('insp.ship') : el.startsWith('text:') ? t('insp.text') : t(NAMES[el]);
     box.innerHTML = `<h4><span>${esc(name)}</span><button type="button" data-iclose aria-label="${esc(t('f.cancel'))}">×</button></h4>${html}`;
     box.hidden = false;
     if (focusTitle && el === 'cartouche') { const i = box.querySelector('[data-ititle]'); i.focus(); i.select(); }
@@ -429,16 +497,27 @@
   $('insp').addEventListener('input', (e) => {
     const d = e.target.dataset;
     if (d.ip) { setPath(d.ip, e.target.type === 'range' ? +e.target.value : e.target.value); paint(); saveDesignSoon(); }
+    const sel = poster.selected || '';
+    if (d.iship && sel.startsWith('ship:')) { const sh = poster.ensureShips()[+sel.slice(5)]; sh[d.iship] = e.target.type === 'range' ? +e.target.value : e.target.value; paint(); saveDesignSoon(); }
+    if (d.itext && sel.startsWith('text:')) { const x = design.texts[+sel.slice(5)]; x[d.itext] = e.target.type === 'range' ? +e.target.value : e.target.value; paint(); saveDesignSoon(); if (document.querySelector('.app').dataset.view === 'design' && d.itext === 'text') { const inp = $('design').querySelector(`[data-text="${sel.slice(5)}"][data-k="text"]`); if (inp) inp.value = e.target.value; } }
     if (d.ilabel) { ((design.insetCfg ||= {})[d.ilabel] ||= {}).label = e.target.value; paint(); saveDesignSoon(); }
     if (d.izoom) { ((design.insetCfg ||= {})[d.izoom] ||= {}).z = +e.target.value; paint(); saveDesignSoon(); }
   });
   $('insp').addEventListener('change', async (e) => {
+    const d = e.target.dataset, sel = poster.selected || '';
+    if (e.target.tagName === 'SELECT' && d.iship && sel.startsWith('ship:')) { poster.ensureShips()[+sel.slice(5)].type = e.target.value; paint(); saveDesignSoon(); return; }
+    if (e.target.tagName === 'SELECT' && d.itext && sel.startsWith('text:')) { design.texts[+sel.slice(5)].style = e.target.value; paint(); saveDesignSoon(); return; }
+    if (e.target.tagName === 'SELECT' && d.ip) { setPath(d.ip, e.target.value); paint(); saveDesignSoon(); return; }
     if (e.target.dataset.ititle === undefined) return;
     try { const m = await api(`/api/maps/${cur.id}`, { token: cur.token, title: e.target.value }, 'PATCH'); state.title = m.title; $('title').value = m.title; paint(); remember({ ...cur, title: m.title }); } catch (err) { toast(err.message); }
   });
   $('insp').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return; const d = b.dataset;
     if (d.iclose !== undefined) { poster.select(null); return; }
+    const cur2 = poster.selected || '';
+    if (d.ishipflip !== undefined) { const sh = poster.ensureShips()[+cur2.slice(5)]; sh.flip = !sh.flip; paint(); saveDesignSoon(); return; }
+    if (d.ishipdel !== undefined) { poster.ensureShips().splice(+cur2.slice(5), 1); poster.select(null); paint(); saveDesignSoon(); if (document.querySelector('.app').dataset.view === 'design') renderDesign(); return; }
+    if (d.itextdel !== undefined) { design.texts.splice(+cur2.slice(5), 1); poster.select(null); paint(); saveDesignSoon(); if (document.querySelector('.app').dataset.view === 'design') renderDesign(); return; }
     if (d.ihide) { design.show[d.ihide] = false; poster.select(null); paint(); saveDesignSoon(); return; }
     if (d.ireset) { if (design.pos) delete design.pos[d.ireset]; paint(); saveDesignSoon(); return; }
     if (d.iresetInset) { const c = (design.insetCfg || {})[d.iresetInset]; if (c) { delete c.lat; delete c.lng; delete c.z; } paint(); saveDesignSoon(); inspector(poster.selected); return; }
@@ -450,18 +529,42 @@
     }
   });
 
-  $('export').addEventListener('click', async () => {
+  // ---------- export and print ----------
+  const allowedSizes = () => Account.limits().sizes || ['screen', '3200'];
+  function exportDialog() {
     if (!state || !state.events.some(Poster.hasGeo)) return toast(t('toast.emptyMap'));
-    const b = $('export'); b.disabled = true; b.textContent = t('btn.exporting');
-    try {
-      await api(`/api/maps/${cur.id}/export`, {});
-      const view = poster.currentView();
-      const { blob, tiles } = await Poster.exportPNG(state, design, { view, width: 3200 });
-      Poster.download(blob, Poster.slug(state.title || t('title.ph')) + '.png'); toast(t(tiles ? 'toast.exported' : 'toast.noTiles'));
-      Account.load();
-    } catch (e) { toast(e.message || 'Export failed'); }
-    b.disabled = false; b.textContent = t('btn.export');
-  });
+    const fmt = design.format, lim = Account.limits(), left = Account.me && Account.me.exportsLeft;
+    let size = store.get('mh:size', '3200'); if (!allowedSizes().includes(size)) size = '3200';
+    const dim = (k) => { const w = Poster.exportWidth(k, fmt), r = { landscape: 1600 / 1131, portrait: 1131 / 1600, square: 1 }[fmt]; return `${w} × ${Math.round(w / r)} px`; };
+    const dlg = document.createElement('div'); dlg.className = 'dlg'; dlg.setAttribute('role', 'dialog'); dlg.setAttribute('aria-modal', 'true');
+    dlg.innerHTML = `<div class="box"><h3><span>${esc(t('ex.title'))}</span><button type="button" data-close aria-label="${esc(t('f.cancel'))}">×</button></h3>
+      <p class="note">${esc(left == null ? t('acc.unlimited') : t('acc.exports', { n: left }))}</p>
+      <div class="sizes">${['screen', '3200', 'a3', 'a2'].map((k) => { const ok = allowedSizes().includes(k); return `<label class="sizeopt ${ok ? '' : 'off'}"><input type="radio" name="size" value="${k}" ${k === size ? 'checked' : ''} ${ok ? '' : 'disabled'}><span><b>${esc(t('size.' + k))}</b><small>${esc(dim(k))}${k === 'a3' || k === 'a2' ? ' · ' + esc(t('size.print')) : ''}</small></span>${ok ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</label>`; }).join('')}</div>
+      <label class="chk" style="margin-top:10px"><input type="checkbox" id="exJpg"> ${esc(t('ex.jpg'))}</label>
+      <div class="progress" hidden><i></i></div><p class="err" role="alert"></p>
+      <div class="acts">${Account.me && Account.me.print ? `<button class="btn" type="button" data-print>${esc(t('print.btn'))}</button>` : ''}<button class="btn primary" type="button" data-go>${esc(t('btn.download'))}</button></div></div>`;
+    document.body.appendChild(dlg);
+    const close = () => { dlg.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (e) => { if (e.key === 'Escape') close(); };
+    document.addEventListener('keydown', onKey);
+    dlg.addEventListener('click', async (e) => {
+      if (e.target === dlg || e.target.closest('[data-close]')) return close();
+      if (e.target.closest('[data-print]')) { close(); return PrintOrder.open({ mapId: cur.id, state, design, poster }); }
+      if (!e.target.closest('[data-go]')) return;
+      const k = dlg.querySelector('input[name=size]:checked').value, jpg = dlg.querySelector('#exJpg').checked, go = e.target.closest('[data-go]');
+      const bar = dlg.querySelector('.progress'), err = dlg.querySelector('.err');
+      store.set('mh:size', k); go.disabled = true; bar.hidden = false; err.textContent = '';
+      try {
+        await api(`/api/maps/${cur.id}/export`, { size: k });
+        const { blob, reduced, width: gotW } = await Poster.exportPNG(state, design, { view: poster.currentView(), width: Poster.exportWidth(k, design.format), ships: poster.ships,
+          type: jpg ? 'image/jpeg' : 'image/png', onProgress: (v) => (bar.firstChild.style.width = v * 100 + '%') });
+        Poster.download(blob, Poster.slug(state.title || t('title.ph')) + '-' + k + (jpg ? '.jpg' : '.png'));
+        toast(reduced ? t('toast.reduced', { w: gotW }) : t('toast.exported')); Account.load(); close();
+      } catch (e2) { err.textContent = e2.message || 'Export failed'; go.disabled = false; bar.hidden = true; }
+    });
+    void lim;
+  }
+  $('export').addEventListener('click', exportDialog);
   $('newMap').addEventListener('click', () => { if (state && state.events.length && !confirm(t('confirm.new'))) return; showStart(); });
   $('myMaps').addEventListener('change', (e) => load(e.target.value));
   let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => paint(), 150); });
