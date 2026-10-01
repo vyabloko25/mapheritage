@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+Sans:wght@400;500;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/assets/style.css">
 <title>Create a family map — MapHeritage</title>
 <style>
@@ -148,6 +147,17 @@
   .chips button { font: 14px var(--ui); background: var(--card); border: 1px solid var(--rule); border-radius: 16px; padding: 6px 12px; cursor: pointer; color: var(--ink); }
   .chips button:hover { border-color: var(--red); color: var(--red); }
   .ctl.locked, .locked-sec { opacity: .5; pointer-events: none; }
+  details.dsec { border-top: 1px solid var(--rule); padding: 10px 0; }
+  details.dsec:last-of-type { border-bottom: 1px solid var(--rule); }
+  details.dsec summary { cursor: pointer; font: 700 17px var(--display); list-style-position: inside; }
+  details.dsec.locked-sec { pointer-events: auto; opacity: 1; } details.dsec.locked-sec .dbody { pointer-events: none; opacity: .5; } details.dsec.locked-sec summary { color: var(--ink-2); }
+  details.dsec .dbody { padding-top: 12px; }
+  .ed h3.prohead { margin-top: 30px; }
+  .ed p.grp { margin: 10px 0 4px; font-weight: 500; text-transform: uppercase; font-size: 12px; letter-spacing: .06em; }
+  .rows li.mini { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 6px; align-items: center; padding: 6px 0; }
+  .rows li.mini.tx { grid-template-columns: 1.4fr 1fr 1fr 1fr auto; }
+  .rows li.mini input[type=range] { min-width: 0; accent-color: var(--red); }
+  .ed .acts { display: flex; gap: 8px; margin: 8px 0; }
   @media (max-width: 860px) { .authpanel { grid-template-columns: 1fr; } .authpanel .pic { display: none; } .authpanel .side { border-right: 0; } }
 </style>
 </head>
@@ -195,11 +205,13 @@
   </section>
 </div>
 <div class="toast" id="toast" role="status"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="/vendor/leaflet/leaflet.js"></script>
 <script src="/assets/i18n.js"></script>
+<script src="/assets/basemap.js"></script>
 <script src="/assets/poster.js"></script>
 <script src="/assets/account.js"></script>
 <script src="/assets/gedcom.js"></script>
+<script src="/assets/print.js"></script>
 <script src="/assets/create.js"></script>
 </body>
 </html>

@@ -4,9 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@400;700&family=Alegreya:ital,wght@0,400;0,500;1,400&family=Alegreya+Sans:wght@400;500;700&family=Old+Standard+TT:ital,wght@0,400;0,700;1,400&family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
 <link rel="stylesheet" href="/assets/style.css">
 <title>Family map — MapHeritage</title>
 <meta property="og:title" content="Family map">
@@ -40,9 +39,11 @@
   <button class="langbtn" type="button" data-lang-toggle>RU</button>
   <div class="acts" id="acts">
     <button class="btn small primary" id="play" type="button" data-i18n="btn.play">Play journey</button>
+    <select id="size" class="sizesel" aria-label="Size"><option value="screen" data-i18n="size.screen">Screen</option><option value="3200" selected data-i18n="size.3200">3200 px</option><option value="a3" data-i18n="size.a3">A3, 300 dpi</option><option value="a2" data-i18n="size.a2">A2, 300 dpi</option></select>
     <button class="btn small" id="download" type="button" data-i18n="btn.download">Download image</button>
     <button class="btn small" id="share" type="button" data-i18n="btn.share">Share</button>
     <button class="btn small" id="print" type="button" data-i18n="btn.print">Print</button>
+    <button class="btn small" id="orderPrint" type="button" hidden data-i18n="print.btn">Order a print</button>
     <a class="btn small" id="edit" href="#" hidden data-i18n="btn.continue">Edit map</a>
   </div>
 </header>
@@ -50,60 +51,12 @@
 <section class="chron" id="chron" hidden><h2 data-i18n="chronicle">Chronicle</h2><div class="people" id="people"></div></section>
 <div class="cta"><p data-i18n="cta.own">Make a chart of your own family.</p><a class="btn big" href="/create" data-i18n="hero.cta">Create your map</a></div>
 <div class="toast" id="toast" role="status"></div>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<footer class="sitefoot"><span>© MapHeritage · <a href="/plans" data-i18n="pl.title">Plans</a> · <a href="/impressum" data-i18n="legal.impressum">Impressum</a> · <a href="/datenschutz" data-i18n="legal.privacy">Privacy</a> · <a href="/agb" data-i18n="legal.terms">Terms</a></span><span data-i18n="footer.base">Base map: Natural Earth, ETOPO5 (NOAA)</span></footer>
+<script src="/vendor/leaflet/leaflet.js"></script>
 <script src="/assets/i18n.js"></script>
+<script src="/assets/basemap.js"></script>
 <script src="/assets/poster.js"></script>
-<script>
-const $ = (id) => document.getElementById(id), esc = Poster.esc, { t } = I18N;
-const id = location.pathname.split('/')[2] || new URLSearchParams(location.search).get('id');
-const poster = Poster.create($('stage'), { scrollWheelZoom: true });
-let data = null;
-function toast(m) { const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2600); }
-const width = () => { const r = { landscape: 1600 / 1131, portrait: 1131 / 1600, square: 1 }[(data.design || {}).format || 'landscape']; const s = $('stage'); return Math.floor(Math.min(s.clientWidth - 2 * parseFloat(getComputedStyle(s).paddingLeft), (innerHeight - 90) * r)); };
-function paint(o = {}) { if (data) poster.render(data, data.design, { width: width(), keepView: o.keepView, animate: o.animate }); }
-function chronicle() {
-  I18N.apply();
-  if (!data) return;
-  document.title = (data.title || t('familyMap')) + ' — MapHeritage';
-  const ds = Poster.design(data.design, data.mode), col = Poster.colors(data.people, ds.palette), used = new Set(data.events.map((e) => e.personId));
-  const people = data.people.filter((p) => used.has(p.id));
-  $('chron').hidden = !people.length;
-  $('people').innerHTML = people.map((p) => `<article class="person"><h3><i style="background:${col[p.id]}"></i>${esc(p.name)}<small>${esc(Poster.rel(p.relation))}</small></h3><ol>${
-    Poster.chrono(data.events.filter((e) => e.personId === p.id)).map((e) => `<li><b>${esc(e.when || '—')}</b><span><strong>${esc(e.place)}</strong>${e.type !== 'other' ? ', ' + esc(t('type.' + e.type)) : ''}${e.note ? '. ' + esc(e.note) : ''}</span></li>`).join('')}</ol></article>`).join('');
-}
-async function load() {
-  try {
-    const r = await fetch('/api/maps/' + encodeURIComponent(id || ''));
-    if (!r.ok) throw new Error(r.status === 404 ? 'notFound.p' : r.status === 403 ? 'err.private' : 'loadFail');
-    data = await r.json();
-  } catch (e) {
-    $('acts').querySelectorAll('.btn').forEach((b) => (b.hidden = true));
-    $('stage').innerHTML = `<div class="empty"><h2>${esc(t(e.message === 'err.private' ? 'err.private' : 'notFound.t'))}</h2><p>${esc(t(e.message.includes('.') ? e.message : 'loadFail'))}</p></div>`;
-    return;
-  }
-  chronicle(); paint({ animate: true });
-  if (data.mine) { $('edit').hidden = false; $('edit').href = '/create?id=' + id + '&tab=design'; }
-}
-$('play').onclick = () => paint({ animate: true, keepView: true });
-$('print').onclick = () => print();
-$('download').onclick = async () => {
-  if (!data || !data.events.some(Poster.hasGeo)) return toast(t('toast.emptyMap'));
-  const b = $('download'); b.disabled = true; b.textContent = t('btn.exporting');
-  try {
-    const q = await fetch('/api/maps/' + id + '/export', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' });
-    if (!q.ok) { const j = await q.json().catch(() => ({})); throw new Error(t('err.' + (j.error || 'auth_required'))); }
-    const { blob, tiles } = await Poster.exportPNG(data, data.design, { view: poster.currentView(), width: 3200 }); Poster.download(blob, Poster.slug(data.title || 'family-map') + '.png'); toast(t(tiles ? 'toast.exported' : 'toast.noTiles')); }
-  catch (e) { toast(e.message || 'Export failed'); }
-  b.disabled = false; b.textContent = t('btn.download');
-};
-$('share').onclick = async () => {
-  const url = location.origin + '/m/' + id;
-  if (navigator.share) { try { await navigator.share({ title: document.title, url }); return; } catch {} }
-  try { await navigator.clipboard.writeText(url); toast(t('toast.copied')); } catch { prompt(t('btn.share'), url); }
-};
-I18N.on(() => { chronicle(); paint({ keepView: true }); });
-let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => paint({ keepView: true }), 150); });
-I18N.apply(); load();
-</script>
+<script src="/assets/print.js"></script>
+<script src="/assets/view.js"></script>
 </body>
 </html>
