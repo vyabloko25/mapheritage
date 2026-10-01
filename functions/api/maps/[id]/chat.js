@@ -4,6 +4,7 @@ import { limitDesign, planOf } from '../../../../lib/plans.js';
 import { buildSystem } from '../../../../lib/scenarios.js';
 import { conversation, callModel, parseModel, mergeDesign } from '../../../../lib/ai.js';
 import { attachGeo } from '../../../../lib/geo.js';
+import { limit } from '../../../../lib/rate.js';
 
 const KEEP_SNAPSHOTS = 30;
 
@@ -16,6 +17,7 @@ export async function onRequestPost({ request, env, params }) {
   const m = await loadMap(env, params.id);
   if (!m) return json({ error: 'not_found' }, 404);
   if (!canEdit(m, user, body.token)) return json({ error: 'forbidden' }, 403);
+  { const rl = await limit(env, request, 'chat', user ? user.id : null); if (rl) return rl; }
   const text = typeof body.message === 'string' ? body.message.trim().slice(0, 2000) : '';
   if (!text) return json({ error: 'empty' }, 400);
 

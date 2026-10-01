@@ -1,2 +1,11 @@
-CREATE TABLE IF NOT EXISTS maps (id TEXT PRIMARY KEY, token TEXT NOT NULL, title TEXT, state TEXT NOT NULL, messages TEXT NOT NULL, turns INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER);
+CREATE TABLE IF NOT EXISTS maps (id TEXT PRIMARY KEY, token TEXT NOT NULL, title TEXT, state TEXT NOT NULL, messages TEXT NOT NULL, turns INTEGER DEFAULT 0, created_at INTEGER, updated_at INTEGER, owner_id TEXT, shared INTEGER DEFAULT 0);
 CREATE TABLE IF NOT EXISTS geocache (q TEXT PRIMARY KEY, lat REAL, lng REAL, created_at INTEGER);
+CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, email TEXT UNIQUE, name TEXT, pass_hash TEXT, salt TEXT, google_sub TEXT UNIQUE, plan TEXT DEFAULT 'lite', pro_requested INTEGER DEFAULT 0, created_at INTEGER, terms_accepted_at INTEGER, terms_version TEXT, age_confirmed INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS sessions (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS snapshots (map_id TEXT NOT NULL, idx INTEGER NOT NULL, state TEXT NOT NULL, PRIMARY KEY (map_id, idx));
+CREATE TABLE IF NOT EXISTS exports (user_id TEXT NOT NULL, month TEXT NOT NULL, count INTEGER DEFAULT 0, PRIMARY KEY (user_id, month));
+CREATE INDEX IF NOT EXISTS maps_owner ON maps (owner_id);
+CREATE TABLE IF NOT EXISTS password_resets (token_hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS rate_limits (k TEXT PRIMARY KEY, n INTEGER NOT NULL, reset INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS print_orders (id TEXT PRIMARY KEY, user_id TEXT, map_id TEXT, file_key TEXT NOT NULL, file_token TEXT NOT NULL, format TEXT, paper TEXT, frame TEXT, name TEXT, street TEXT, zip TEXT, city TEXT, country TEXT, email TEXT, phone TEXT, note TEXT, items REAL, shipping REAL, total REAL, currency TEXT, status TEXT DEFAULT 'new', terms_version TEXT, created_at INTEGER);
+CREATE INDEX IF NOT EXISTS print_orders_user ON print_orders (user_id);

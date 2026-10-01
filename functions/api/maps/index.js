@@ -3,6 +3,7 @@ import { requireUser } from '../../../lib/auth.js';
 import { limitDesign } from '../../../lib/plans.js';
 import { SCENARIOS } from '../../../lib/scenarios.js';
 import { normalize } from '../../../lib/ai.js';
+import { limit } from '../../../lib/rate.js';
 
 // GET /api/maps — the signed-in user's maps.
 export async function onRequestGet({ request, env }) {
@@ -16,6 +17,7 @@ export async function onRequestGet({ request, env }) {
 export async function onRequestPost({ request, env }) {
   const bad = needDb(env); if (bad) return bad;
   const { user, res } = await requireUser(request, env); if (res) return res;
+  const rl = await limit(env, request, 'create', user.id); if (rl) return rl;
   const body = await readJson(request);
   const l = lang(body.lang), mode = SCENARIOS[body.mode] ? body.mode : 'family';
   const id = newId(8), token = newId(28), now = Date.now();

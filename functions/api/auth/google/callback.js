@@ -2,7 +2,7 @@ import { cookies, startSession, sessionCookie, createUser } from '../../../../li
 
 export async function onRequestGet({ request, env }) {
   const url = new URL(request.url), fail = (why) => Response.redirect(url.origin + '/create?auth_error=' + why, 302);
-  const [state, nextEnc] = (cookies(request).mh_oauth || '').split('|');
+  const [state, nextEnc, consent] = (cookies(request).mh_oauth || '').split('|');
   if (!state || state !== url.searchParams.get('state')) return fail('state');
   const code = url.searchParams.get('code'); if (!code) return fail('denied');
   const tr = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -20,7 +20,10 @@ export async function onRequestGet({ request, env }) {
     if (u) await env.DB.prepare('UPDATE users SET google_sub = ? WHERE id = ?').bind(g.sub, u.id).run();
   }
   let id = u && u.id;
-  if (!id) { try { id = await createUser(env, { email, name: g.name || '', googleSub: g.sub }); } catch { return fail('email'); } }
+  if (!id) {
+    if (consent !== '1') return fail('terms');
+    try { id = await createUser(env, { email, name: g.name || '', googleSub: g.sub, consent: true }); } catch { return fail('email'); }
+  }
   const tok = await startSession(env, id);
   const next = decodeURIComponent(nextEnc || '/create');
   return new Response(null, { status: 302, headers: [['location', url.origin + (next.startsWith('/') ? next : '/create')], ['set-cookie', sessionCookie(tok)], ['set-cookie', 'mh_oauth=; Path=/api/auth/google; Max-Age=0']] });
