@@ -2,6 +2,21 @@
 (function () {
   const D = {
  "en": {
+  "d.insets.osm": "From zoom 11 the insets show the town itself from OpenStreetMap: main roads first, then secondary roads, then smaller streets as you zoom in.",
+  "d.relief.shade": "Add hill shading",
+  "d.relief.color": "Line colour",
+  "d.relief.density": "Density",
+  "d.relief.alpha": "Relief strength",
+  "d.rp.mono": "From the style colours",
+  "d.rp.sepia": "Sepia",
+  "d.rp.classic": "Classic atlas",
+  "d.relief.palette": "Tints",
+  "d.rs.pictorial": "Pictorial mountains",
+  "d.rs.hachure": "Hachures",
+  "d.rs.contour": "Contour lines",
+  "d.rs.hypso": "Elevation tints",
+  "d.rs.shade": "Hill shading",
+  "d.relief.style": "Relief",
   "hero.t1": "Every family has",
   "hero.t2": "its own geography.",
   "f.signName": "Vasily Yablokov",
@@ -138,7 +153,7 @@
   "d.tex.stipple": "Stipple everywhere",
   "d.tex.coast": "Stipple along coast",
   "d.tex.type": "Land texture",
-  "d.relief.amt": "Relief",
+  "d.relief.amt": "Hill shading",
   "d.water.color": "Line colour",
   "d.water.alpha": "Strength",
   "d.water.gap": "Spacing",
@@ -495,6 +510,21 @@
   "p.mi": "mi"
  },
  "ru": {
+  "d.insets.osm": "С масштаба 11 во врезках сам город по данным OpenStreetMap: сначала главные дороги, при приближении — второстепенные, затем улицы.",
+  "d.relief.shade": "Добавить отмывку",
+  "d.relief.color": "Цвет линий",
+  "d.relief.density": "Густота",
+  "d.relief.alpha": "Сила рельефа",
+  "d.rp.mono": "Из цветов стиля",
+  "d.rp.sepia": "Сепия",
+  "d.rp.classic": "Классический атлас",
+  "d.relief.palette": "Шкала",
+  "d.rs.pictorial": "Рисованные горы",
+  "d.rs.hachure": "Штрихи",
+  "d.rs.contour": "Горизонтали",
+  "d.rs.hypso": "Послойная окраска",
+  "d.rs.shade": "Отмывка",
+  "d.relief.style": "Рельеф",
   "hero.t1": "У каждой семьи",
   "hero.t2": "своя география.",
   "f.signName": "Василий Яблоков",
@@ -631,7 +661,7 @@
   "d.tex.stipple": "Крап по всей суше",
   "d.tex.coast": "Крап вдоль берега",
   "d.tex.type": "Фактура суши",
-  "d.relief.amt": "Рельеф",
+  "d.relief.amt": "Отмывка",
   "d.water.color": "Цвет линий",
   "d.water.alpha": "Сила",
   "d.water.gap": "Шаг",
@@ -876,7 +906,7 @@
   "hero.cta2": "Как всё началось",
   "hero.caption": "Пример: семья Левиных, от Витебска 1896 года до Берлина век спустя. Стиль можно переключить ниже.",
   "s.title": "Три способа начать",
-  "s.journey.t": "Одна жизнь, остановка за остановкой",
+  "s.journey.t": "Жизнь по остановкам",
   "s.journey.p": "Для деда, который объехал полмира, или для себя. Рождение, учёба, служба, каждый переезд, последний адрес. Остановки пронумерованы, рядом с картой — хроника.",
   "s.family.t": "Семья",
   "s.family.p": "Вы, ваши близкие, дети и родители. У каждого свой цвет и свой маршрут, и видно, где ваши дороги пересеклись.",
@@ -1017,5 +1047,6 @@
   document.addEventListener('click', (e) => {
     if (e.target.closest && e.target.closest('[data-lang-toggle]')) set(lang === 'en' ? 'ru' : 'en');
   });
-  window.I18N = { t, plural, apply, set, on: (f) => subs.push(f), get lang() { return lang; } };
+  const tIn = (l, k) => (D[l] && D[l][k]) ?? D.en[k] ?? k;
+  window.I18N = { t, tIn, langs: ['en', 'ru'], plural, apply, set, on: (f) => subs.push(f), get lang() { return lang; } };
 })();

@@ -26,7 +26,7 @@
     water: { n: 6, gap: 3.1, w: 0.7, color: '#4A3521', alpha: 0.42 },
     depth: { color: '#9FB3A6', alpha: 0.5 },
     shadow: { color: 'rgba(70,48,20,.45)', blur: 9, dx: 0, dy: 0 },
-    relief: { amt: 0.8 },
+    relief: { style: 'shade', amt: 0.8, shade: true, alpha: 0.8, density: 1, palette: 'sepia', color: '' },
     tex: { type: 'coast', color: '#6B5030', alpha: 0.55 },
     coast: { color: '#4A3521', w: 1 },
     rivers: { color: '#5F7A7E', w: 1 },
@@ -41,30 +41,31 @@
     labels: { style: 'italic', halo: 'halo' },
     frame: { style: 'degrees' },
     cartouche: { style: 'scroll', size: 1 }, compass: { style: 'ornate', size: 1 }, scale: { units: 'km', size: 1, style: 'checker' },
+    city: { style: 'engraved', hatch: true },
     show: SHOW,
     ships: null, autoShips: 2, shipTypes: ['galleon', 'caravel'], texts: [],
-    panel: 'auto', panelSize: 0.3, insets: { max: 8, shape: 'circle', zoom: 6.5, pick: null }, subtitle: '', view: null,
+    panel: 'auto', panelSize: 0.3, insets: { max: 8, shape: 'circle', zoom: 13, pick: null }, subtitle: '', view: null,
     legendTitle: '', panelTitle: '', pos: {}, insetCfg: {},
   };
   const PRESETS = {
-    discovery: { show: { rhumbs: true } , rhumbs: { alpha: 0.18 } },
+    discovery: { show: { rhumbs: true }, rhumbs: { alpha: 0.18 }, relief: { style: 'pictorial', amt: 0.45, alpha: 0.85 } },
     portolan: {
       font: 'cormorant', paper: '#EDDCAB', ink: '#2B1D12', accent: '#A3261B', frameColor: '#2B1D12',
       palette: ['#A3261B', '#2F5E3A', '#1E3F73', '#B07A1E', '#6B2C55', '#2B1D12', '#8C4A22', '#3E6E70'],
       sea: '#E7D3A0', land: '#F1E3B8', water: { n: 2, gap: 2.2, color: '#2B1D12', alpha: 0.35 }, shadow: { color: 'rgba(90,60,20,.3)', blur: 5 },
-      relief: { amt: 0.35 }, tex: { type: 'coast', color: '#A3261B', alpha: 0.45 }, coast: { color: '#2B1D12', w: 1.3 }, rivers: { color: '#4C6E86', w: 0.9 },
+      relief: { style: 'pictorial', amt: 0.35, shade: false, alpha: 0.9, density: 0.9 }, tex: { type: 'coast', color: '#A3261B', alpha: 0.45 }, coast: { color: '#2B1D12', w: 1.3 }, rivers: { color: '#4C6E86', w: 0.9 },
       rhumbs: { colors: ['#2B1D12', '#2F6E3A', '#A3261B'], alpha: 0.5, w: 0.55, network: true },
       waves: { color: '#2B1D12', alpha: 0.4, density: 0.22 },
       aging: { amount: 0.8, seed: 11 }, vignette: 'rgba(90,55,15,.4)',
       routes: { style: 'hand', width: 2.4, curve: 0.18 }, markers: { style: 'dot', size: 1 }, labels: { style: 'italic', halo: 'halo' },
       frame: { style: 'ornament' }, cartouche: { style: 'medallion' }, compass: { style: 'portolan', size: 1.15 },
-      show: { rhumbs: true, graticule: false, borders: false, depth: false, stipple: true, waves: false, relief: false }, autoShips: 2, shipTypes: ['caravel'],
+      show: { rhumbs: true, graticule: false, borders: false, depth: false, stipple: true, waves: false, relief: true }, autoShips: 2, shipTypes: ['caravel'],
     },
     admiralty: {
       font: 'oldstandard', paper: '#F4F1E8', ink: '#1D2A33', accent: '#7A1E1E', frameColor: '#1D2A33',
       palette: ['#B22A1E', '#1B3F8F', '#2C6E49', '#C08A1E', '#6A2C70', '#1F7A8C', '#8A4F2A', '#333333'],
       sea: '#EEF4F4', land: '#EFE2BF', water: { n: 3, gap: 2.2, w: 0.55, color: '#4F7A8E', alpha: 0.7 }, depth: { color: '#A9CCD8', alpha: 0.85 },
-      shadow: { color: 'rgba(40,60,70,.25)', blur: 4 }, relief: { amt: 0.45 }, tex: { type: 'stipple', color: '#8A6A3A', alpha: 0.5 },
+      shadow: { color: 'rgba(40,60,70,.25)', blur: 4 }, relief: { style: 'hachure', amt: 0.3, alpha: 0.75 }, tex: { type: 'stipple', color: '#8A6A3A', alpha: 0.5 },
       coast: { color: '#1D2A33', w: 1.05 }, rivers: { color: '#4F7A8E', w: 0.9 }, borders: { style: 'dashdot', color: '#6A5A48', w: 0.7, ribbon: '' },
       grat: { color: '#1D2A33', alpha: 0.4, w: 0.6, dash: false }, vignette: 'rgba(0,0,0,0)', aging: { amount: 0.22, seed: 21 },
       routes: { style: 'solid', width: 2.4, curve: 0.16, arrows: true }, markers: { style: 'ring' }, labels: { style: 'roman', halo: 'halo' },
@@ -75,22 +76,22 @@
       font: 'garamond', paper: '#111822', ink: '#E7D6A8', accent: '#D4A64A', frameColor: '#D4A64A',
       palette: ['#E8674A', '#6FA8DC', '#8BC48A', '#E6C15A', '#C58BC8', '#5FC2C2', '#E0A36E', '#DDDDDD'],
       sea: '#152131', land: '#223044', lake: '#152131', water: { n: 5, gap: 3.4, w: 0.6, color: '#D4A64A', alpha: 0.28 }, depth: { color: '#1C3148', alpha: 0.9 },
-      shadow: { color: 'rgba(212,166,74,.38)', blur: 14 }, relief: { amt: 0.75 }, tex: { type: 'none' },
+      shadow: { color: 'rgba(212,166,74,.38)', blur: 14 }, relief: { style: 'contour', amt: 0.75, alpha: 0.4, color: '#D4A64A', palette: 'mono' }, tex: { type: 'none' },
       coast: { color: '#D4A64A', w: 0.9 }, rivers: { color: '#4C6D8C', w: 0.9 }, borders: { style: 'dotted', color: '#8C99A8', w: 0.9, ribbon: '' },
       grat: { color: '#D4A64A', alpha: 0.28, w: 0.7, dash: true }, rhumbs: { colors: ['#D4A64A', '#8C99A8', '#8C99A8'], alpha: 0.22, w: 0.5 },
       waves: { color: '#D4A64A', alpha: 0.4, density: 0.25 }, vignette: 'rgba(0,0,0,.55)',
       routes: { style: 'casing', width: 2.6, curve: 0.2, arrows: true, casing: '#0B1018' }, markers: { style: 'star', size: 1.05 }, labels: { style: 'italic', halo: 'halo' },
-      frame: { style: 'double' }, cartouche: { style: 'medallion' }, compass: { style: 'ornate' },
+      frame: { style: 'double' }, cartouche: { style: 'medallion' }, compass: { style: 'ornate' }, city: { style: 'night' },
       show: { texture: false, aging: false, stipple: false, depth: true }, autoShips: 1, shipTypes: ['galleon'],
     },
     atlas: {
       font: 'jost', paper: '#FFFFFF', ink: '#1A1A1A', accent: '#E0301E', frameColor: '#1A1A1A',
       palette: ['#E0301E', '#1F3FBF', '#F2B705', '#00875A', '#F26B1D', '#6B3FA0', '#0097B2', '#1A1A1A'],
-      sea: '#D5E5EE', land: '#F4F2EC', water: { n: 0 }, relief: { amt: 0.5 }, tex: { type: 'none' },
+      sea: '#D5E5EE', land: '#F4F2EC', water: { n: 0 }, relief: { style: 'hypso', amt: 0.4, alpha: 0.9, palette: 'classic' }, tex: { type: 'none' },
       coast: { color: '#86A3B4', w: 0.8 }, rivers: { color: '#8DB2C8', w: 0.9 }, borders: { style: 'solid', color: '#A8A8A8', w: 0.7, ribbon: '' },
       grat: { color: '#7A93A3', alpha: 0.35, w: 0.6, dash: false }, vignette: 'rgba(0,0,0,0)',
       routes: { style: 'casing', width: 3.6, curve: 0.14, arrows: true, casing: '#FFFFFF' }, markers: { style: 'ring' }, labels: { style: 'roman', halo: 'halo' },
-      frame: { style: 'line' }, cartouche: { style: 'block' }, compass: { style: 'simple' }, scale: { style: 'line' },
+      frame: { style: 'line' }, cartouche: { style: 'block' }, compass: { style: 'simple' }, scale: { style: 'line' }, city: { style: 'modern' },
       show: { texture: false, vignette: false, aging: false, waterlines: false, shadow: false, stipple: false, ships: false, waves: false, degrees: true }, autoShips: 0,
     },
   };
@@ -191,7 +192,7 @@
     let insets = [];
     if (ds.show.insets) {
       if (Array.isArray(ds.insets.pick)) insets = ds.insets.pick.map((k) => places[k]).filter(Boolean);
-      else insets = all.slice().sort((a, b) => b.list.length - a.list.length).slice(0, ds.insets.max);
+      else insets = all.filter((p) => !p.list.every((e) => e.kind === 'country' || e.kind === 'region')).sort((a, b) => b.list.length - a.list.length).slice(0, ds.insets.max);
       insets.sort((a, b) => a.n - b.n);
     }
     const mode = state.mode || 'family';
@@ -610,8 +611,9 @@
     }
     return s + lines + nodes;
   }
-  function svgAttribution(L, ds, F) {
-    return `<text x="${L.outer.x + L.outer.w}" y="${L.H - 14}" text-anchor="end" font-family="${esc(F.text)}" font-size="11" fill="${ds.ink}" fill-opacity=".6">MapHeritage · Natural Earth · ETOPO5 (NOAA)</text>`;
+  function svgAttribution(L, ds, F, m) {
+    const osm = ds.show.insets && m && m.insets.length && m.insets.some((p) => { const c = (ds.insetCfg || {})[p.key] || {}; return (Number.isFinite(c.z) ? c.z : ds.insets.zoom) >= 11; });
+    return `<text x="${L.outer.x + L.outer.w}" y="${L.H - 14}" text-anchor="end" font-family="${esc(F.text)}" font-size="11" fill="${ds.ink}" fill-opacity=".6">MapHeritage · Natural Earth · ETOPO5 (NOAA)${osm ? ' · © OpenStreetMap contributors' : ''}</text>`;
   }
   const NOISE = `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
   const NOISE_URL = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(NOISE);
@@ -636,8 +638,9 @@
       this._c = L.DomUtil.create('canvas', 'p-base', pane);
       map.on('move zoom resize viewreset', this.request, this);
       this._unsub = Basemap.subscribe(() => this.request());
+      this._unsub2 = window.CityMap ? CityMap.subscribe(() => this.request()) : null;
     },
-    onRemove(map) { map.off('move zoom resize viewreset', this.request, this); if (this._unsub) this._unsub(); this._c.remove(); cancelAnimationFrame(this._raf); },
+    onRemove(map) { map.off('move zoom resize viewreset', this.request, this); if (this._unsub) this._unsub(); if (this._unsub2) this._unsub2(); this._c.remove(); cancelAnimationFrame(this._raf); },
     request() { if (this._raf || this.o.silent) return; this._raf = requestAnimationFrame(() => { this._raf = 0; this.redraw(); }); },
     view() {
       const map = this._map, sz = map.getSize(), s = 256 * 2 ** map.getZoom(), nw = map.containerPointToLayerPoint([0, 0]), o = map.getPixelOrigin();
@@ -652,6 +655,7 @@
       L.DomUtil.setPosition(c, this._map.containerPointToLayerPoint([0, 0]));
       const g = c.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); V.dpr = dpr;
       const r = Basemap.render(g, V, ctx0.S);
+      if (ctx0.after) ctx0.after(g, V);
       this.mask = r.mask;
       if (this.o.onDraw) this.o.onDraw(r);
     },
@@ -767,7 +771,7 @@
       let decor = '';
       shipList().forEach((sh, i) => { const r = shipSVG({ ...sh, px: Lr.M.x + sh.x * Lr.M.w, py: Lr.M.y + sh.y * Lr.M.h }, D); decor += r.svg; boxes['ship:' + i] = r.box; });
       (D.texts || []).forEach((tx, i) => { if (!tx.text) return; const r = svgText(tx, Lr, D, F); decor += r.svg; boxes['text:' + i] = r.box; });
-      over.innerHTML = `<svg viewBox="0 0 ${Lr.W} ${f2(Lr.H)}" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="mhClipM"><rect x="${Lr.M.x}" y="${Lr.M.y}" width="${Lr.M.w}" height="${Lr.M.h}"/></clipPath></defs>${svgFrame(Lr, D, P)}${svgDegrees(Lr, D, F, P)}<g clip-path="url(#mhClipM)">${decor}</g>${svgInsets(Lr, D, F, M)}${svgPanel(Lr, D, F, M, S)}${cart.svg}${leg.svg}${comp.svg}${sc.svg}${svgAttribution(Lr, D, F)}</svg>`;
+      over.innerHTML = `<svg viewBox="0 0 ${Lr.W} ${f2(Lr.H)}" xmlns="http://www.w3.org/2000/svg"><defs><clipPath id="mhClipM"><rect x="${Lr.M.x}" y="${Lr.M.y}" width="${Lr.M.w}" height="${Lr.M.h}"/></clipPath></defs>${svgFrame(Lr, D, P)}${svgDegrees(Lr, D, F, P)}<g clip-path="url(#mhClipM)">${decor}</g>${svgInsets(Lr, D, F, M)}${svgPanel(Lr, D, F, M, S)}${cart.svg}${leg.svg}${comp.svg}${sc.svg}${svgAttribution(Lr, D, F, M)}</svg>`;
       if (opts.editable) hits();
       return cart.box;
     }
@@ -861,12 +865,25 @@
       root.style.setProperty('--p-label-font', F.text); root.style.setProperty('--p-label-size', 15 * D.labelSize * f + 'px');
       root.style.setProperty('--p-ink', D.ink); root.style.setProperty('--p-halo', D.paper); root.style.setProperty('--p-f', f);
     }
+    // The inset's own scale: zoom of a 170-unit window, whatever size the inset has on the poster.
+    function insetZoom(x) { const r = Lr && Lr.ins[x.i]; return r ? x.map.getZoom() - Math.log2((f * r.w) / 170) : 0; }
+    function insetStyle(x) {
+      const z = insetZoom(x), st = { ...baseStyle(D, lz(x.map)), rhumbs: { on: false }, waves: { on: false }, grat: { on: false } };
+      st.borders = { on: false }; // insets show the settlement, not countries
+      if (z >= CityMap.MIN_Z) { st.rivers = { on: false }; st.tex = { type: 'none' }; st.water = { on: false }; }
+      return st;
+    }
+    function insetCity(x) { const z = insetZoom(x), c = x.map.getCenter().wrap(); return { lat: c.lat, lng: c.lng, z }; }
+    function insetContext(x) {
+      const S2 = insetStyle(x), c = insetCity(x);
+      return { V: { f, lz: lz(x.map) }, S: S2, after: (g, V) => CityMap.draw(g, V, S2, CityMap.get(c.lat, c.lng, c.z), D.city) };
+    }
     function setupInsets() {
       while (insets.length > M.insets.length) { const x = insets.pop(); x.map.remove(); x.el.remove(); }
       while (insets.length < M.insets.length) {
         const el = document.createElement('div'); el.className = 'p-inset'; insetHost.appendChild(el);
         const x = { el, i: insets.length };
-        Object.assign(x, makeMap(el, false, { silent: !!opts.exporting, context: () => (D ? { V: { f, lz: lz(x.map) }, S: { ...baseStyle(D, lz(x.map)), rhumbs: { on: false }, waves: { on: false }, grat: { on: false } } } : null) }));
+        Object.assign(x, makeMap(el, false, { silent: !!opts.exporting, context: () => (D ? insetContext(x) : null) }));
         insets.push(x);
         x.map.on('moveend', () => {
           if (x.applying || !opts.onDesign || selected !== 'inset:' + x.i) return;
@@ -882,7 +899,7 @@
         x.el.style.background = D.sea;
         x.map.invalidateSize(false);
         x.applying = true;
-        x.map.setView([Number.isFinite(cfg.lat) ? cfg.lat : pl.e.lat, Number.isFinite(cfg.lng) ? cfg.lng : pl.e.lng], Math.min(10, Number.isFinite(cfg.z) ? cfg.z : D.insets.zoom) + Math.log2((f * r.w) / 170), { animate: false });
+        x.map.setView([Number.isFinite(cfg.lat) ? cfg.lat : pl.e.lat, Number.isFinite(cfg.lng) ? cfg.lng : pl.e.lng], Math.min(16.5, Number.isFinite(cfg.z) ? cfg.z : D.insets.zoom) + Math.log2((f * r.w) / 170), { animate: false });
         x.applying = false;
         x.group.clearLayers(); x.place = pl;
         x.group.addLayer(L.marker([pl.e.lat, pl.e.lng], { icon: markerIcon({ ...pl, people: new Set([1]) }), interactive: false }));
@@ -948,7 +965,7 @@
       const jobs = [];
       const one = (mm, st) => { const V = { ...mm.base.view(), f }; jobs.push(Basemap.ensure(V, st)); };
       one(main, baseStyle(D, lz(main.map)));
-      insets.forEach((x) => one(x, baseStyle(D, lz(x.map))));
+      insets.forEach((x) => { one(x, insetStyle(x)); const c = insetCity(x); jobs.push(CityMap.ensure(c.lat, c.lng, c.z)); });
       await Promise.all(jobs);
     }
     return {
@@ -958,7 +975,7 @@
       get ships() { return shipList().map((x) => ({ ...x })); },
       currentView: () => { const c = main.map.getCenter().wrap(); return { lat: c.lat, lng: c.lng, z: main.map.getZoom() - Math.log2(f) }; },
       destroy() { timers.forEach(clearTimeout); insets.forEach((x) => x.map.remove()); main.map.remove(); root.remove(); },
-      _parts: () => ({ main, insets, mapEl, over, f, Lr, D, M, S, rhumbCenters, lz }),
+      _parts: () => ({ main, insets, mapEl, over, f, Lr, D, M, S, rhumbCenters, lz, insetContext }),
     };
   }
 
@@ -1063,8 +1080,8 @@
         c.save(); c.beginPath();
         if (D.insets.shape === 'circle') c.arc((r.x + r.w / 2) * f, (r.y + r.h / 2) * f, (r.w / 2) * f, 0, 7); else c.rect(r.x * f, r.y * f, r.w * f, r.h * f);
         c.clip(); c.translate(r.x * f, r.y * f);
-        const lzi = parts.lz(x.map), st = { ...baseStyle(D, lzi), rhumbs: { on: false }, waves: { on: false }, grat: { on: false } };
-        Basemap.render(c, { ...x.base.view(), f, lz: lzi, dpr: 1 }, st);
+        const lzi = parts.lz(x.map), ic = parts.insetContext(x), V2 = { ...x.base.view(), f, lz: lzi, dpr: 1 };
+        Basemap.render(c, V2, ic.S); ic.after(c, V2);
         drawMarker(c, x.map.latLngToContainerPoint([x.place.e.lat, x.place.e.lng]), { ...x.place, people: new Set([1]) }, D, f);
         c.restore();
       });

@@ -141,3 +141,4 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.05; m
 .sizeopt.off { opacity: .6; cursor: default; }
 .sizeopt input { accent-color: var(--red); }
 .dlg label.chk input, .aform .chk input { flex: none; }
+.brand .logo { --logo-bg: var(--page); color: var(--ink); }

@@ -250,7 +250,7 @@
       case 'delEvent': { const id = draft.id; closeForms(false); state = { ...state, events: state.events.filter((x) => x.id !== id) }; return saveState(t('toast.removed')); }
       case 'find': {
         readEvent(f); if (!draft.query) return; el.disabled = true;
-        try { const r = await fetch('/api/geocode?q=' + encodeURIComponent(draft.query)); if (!r.ok) throw 0; const g = await r.json(); Object.assign(draft, { lat: g.lat, lng: g.lng, geo: 'osm' }); }
+        try { const r = await fetch('/api/geocode?q=' + encodeURIComponent(draft.query)); if (!r.ok) throw 0; const g = await r.json(); Object.assign(draft, { lat: g.lat, lng: g.lng, geo: 'osm', kind: g.kind || '' }); }
         catch { toast(t('toast.notFound')); }
         el.disabled = false; return geoStatus();
       }
@@ -281,7 +281,7 @@
   const sel = (path, values, prefix) => `<select data-set="${path}">${opts(values.map((v) => [v, t(prefix + v)]), get(path))}</select>`;
   const range = (path, min, max, step) => `<input type="range" data-set="${path}" data-num="1" min="${min}" max="${max}" step="${step}" value="${get(path) ?? min}">`;
   const hex = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888');
-  const color = (path) => `<input type="color" data-set="${path}" value="${hex(get(path))}">`;
+  const color = (path) => `<input type="color" data-set="${path}" value="${hex(get(path) || (path === 'relief.color' ? design.coast.color : ''))}">`;
   const check = (path, label) => `<label><input type="checkbox" data-set="${path}" ${get(path) ? 'checked' : ''}> ${esc(t(label))}</label>`;
   const ctl = (label, html) => `<div class="ctl"><span>${esc(t(label))}</span>${html}</div>`;
   const lockB = () => (pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`);
@@ -306,7 +306,7 @@
         ${ctl('d.panel', sel('panel', ['auto', 'tree', 'chronicle', 'none'], 'd.panel.'))}
         ${ctl('d.subtitle', `<input data-set="subtitle" value="${esc(design.subtitle)}" placeholder="${esc(t('d.subtitle.ph'))}">`)}</section>
       <section><h3>${esc(t('d.elements'))}</h3>${Object.entries(SHOW_GROUPS).map(([g, ks]) => `<p class="note grp">${esc(t(g))}</p><div class="checks">${ks.map((k) => check('show.' + k, 'd.show.' + k)).join('')}</div>`).join('')}</section>
-      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 4, 10, 0.25))}</div>
+      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 7, 16.5, 0.25))}<p class="note">${esc(t('d.insets.osm'))}</p></div>
         <div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="insAuto" ${picked ? '' : 'checked'}> ${esc(t('d.insets.auto'))}</label></div>
         ${picked ? `<div class="picks">${places.map((p) => `<label><input type="checkbox" data-pick="${p.key}" ${picked.has(p.key) ? 'checked' : ''}> ${esc(p.e.place)} <small>${esc(Poster.span(Poster.years(p.list)))}</small></label>`).join('')}</div>` : ctl('d.insets.max', range('insets.max', 0, 16, 1))}</section>
       <h3 class="prohead">${esc(t('d.fine'))}${lockB()}</h3>
@@ -316,7 +316,13 @@
       ${proSec('d.type', `${ctl('d.font', `<select data-set="font">${opts(fonts, design.font)}</select>`)}${ctl('d.labelSize', range('labelSize', 0.6, 1.8, 0.05))}
         ${ctl('d.labels.style', seg('labels.style', ['italic', 'roman', 'caps'], 'd.labels.'))}${ctl('d.labels.halo', seg('labels.halo', ['halo', 'box', 'none'], 'd.halo.'))}`, openSecs.has('d.type'))}
       ${proSec('d.water', `${ctl('d.water.n', range('water.n', 0, 10, 1))}${ctl('d.water.gap', range('water.gap', 1.5, 6, 0.1))}${ctl('d.water.alpha', range('water.alpha', 0, 1, 0.02))}${ctl('d.water.color', color('water.color'))}
-        ${ctl('d.relief.amt', range('relief.amt', 0, 1.5, 0.05))}${ctl('d.tex.type', sel('tex.type', ['coast', 'stipple', 'hatch', 'none'], 'd.tex.'))}${ctl('d.tex.alpha', range('tex.alpha', 0, 1, 0.02))}
+        ${ctl('d.relief.style', sel('relief.style', ['shade', 'hypso', 'contour', 'hachure', 'pictorial'], 'd.rs.'))}
+        ${design.relief.style === 'hypso' ? ctl('d.relief.palette', sel('relief.palette', ['classic', 'sepia', 'mono'], 'd.rp.')) : ''}
+        ${design.relief.style !== 'shade' ? ctl('d.relief.alpha', range('relief.alpha', 0.1, 1, 0.02)) : ''}
+        ${['hachure', 'pictorial'].includes(design.relief.style) ? ctl('d.relief.density', range('relief.density', 0.5, 1.8, 0.05)) : ''}
+        ${['contour', 'hachure', 'pictorial'].includes(design.relief.style) ? ctl('d.relief.color', color('relief.color')) : ''}
+        ${design.relief.style !== 'shade' ? `<div class="checks">${check('relief.shade', 'd.relief.shade')}</div>` : ''}
+        ${design.relief.style === 'shade' || design.relief.shade !== false ? ctl('d.relief.amt', range('relief.amt', 0, 1.5, 0.05)) : ''}${ctl('d.tex.type', sel('tex.type', ['coast', 'stipple', 'hatch', 'none'], 'd.tex.'))}${ctl('d.tex.alpha', range('tex.alpha', 0, 1, 0.02))}
         ${ctl('d.shadow.blur', range('shadow.blur', 0, 24, 1))}${ctl('d.borders.style', sel('borders.style', ['dashed', 'dotted', 'dashdot', 'solid'], 'd.border.'))}
         ${ctl('d.aging.amount', range('aging.amount', 0, 1, 0.02))}<div class="checks">${check('rhumbs.network', 'd.rhumbs.network')}</div>`, openSecs.has('d.water'))}
       ${proSec('d.furniture', `${ctl('d.cartouche.style', sel('cartouche.style', ['frame', 'scroll', 'medallion', 'block'], 'd.cart.'))}${ctl('d.compass.style', sel('compass.style', ['ornate', 'simple', 'portolan', 'modern'], 'd.comp.'))}
@@ -354,8 +360,8 @@
     if (el.dataset.pick) { const s = new Set(design.insets.pick || []); el.checked ? s.add(el.dataset.pick) : s.delete(el.dataset.pick); design.insets.pick = [...s]; return designChanged(); }
     if (el.dataset.ship !== undefined && el.tagName === 'SELECT') { poster.ensureShips()[+el.dataset.ship].type = el.value; return designChanged(); }
     if (el.dataset.text !== undefined && el.tagName === 'SELECT') { design.texts[+el.dataset.text].style = el.value; return designChanged(); }
-    if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); return designChanged(); }
-    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); }
+    if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); designChanged(); if (el.dataset.set === 'relief.shade') renderDesign(); return; }
+    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); if (el.dataset.set === 'relief.style') { if (!design.show.relief) design.show.relief = true; renderDesign(); } }
   });
   // Switching the style keeps the content and layout the person chose, but takes colours and drawing from the new style.
   const KEEP = ['format', 'subtitle', 'view', 'panel', 'panelSize', 'pos', 'insetCfg', 'legendTitle', 'panelTitle', 'texts', 'ships', 'labelSize'];
@@ -412,7 +418,7 @@
       try { const r = await fetch('/api/geocode?q=' + encodeURIComponent(need[i])); if (r.ok) found[need[i]] = await r.json(); } catch {}
     }
     let miss = 0;
-    for (const ev of sel.events) if (!Poster.hasGeo(ev)) { const g = found[ev.query]; if (g) Object.assign(ev, { lat: g.lat, lng: g.lng, geo: 'osm' }); else miss++; }
+    for (const ev of sel.events) if (!Poster.hasGeo(ev)) { const g = found[ev.query]; if (g) Object.assign(ev, { lat: g.lat, lng: g.lng, geo: 'osm', kind: g.kind || '' }); else miss++; }
     const root = sel.people.find((p) => p.id === sel.rootId);
     const title = root ? (I18N.lang === 'ru' ? 'Род: ' : 'The family of ') + root.name : '';
     await createNew('tree', { side: $('gedScope').value !== 'direct' }, { title, people: sel.people, events: sel.events, rootId: sel.rootId });
@@ -483,7 +489,7 @@
       const b = poster.boxes[el]; if (!b) { box.hidden = true; return; }
       const key = b.key, cfg = (design.insetCfg || {})[key] || {}, pl = Poster.model(state, design).places[key];
       html = `<p>${esc(t('insp.panHint'))}</p><label>${esc(t('insp.label'))}${lock}<input data-ilabel="${key}" value="${esc(cfg.label || '')}" placeholder="${esc(pl ? pl.e.place : '')}" ${dis}></label>
-        <label>${esc(t('insp.detail'))}${lock}<input type="range" data-izoom="${key}" min="4" max="10" step="0.25" value="${Number.isFinite(cfg.z) ? cfg.z : design.insets.zoom}" ${dis}></label>
+        <label>${esc(t('insp.detail'))}${lock}<input type="range" data-izoom="${key}" min="7" max="16.5" step="0.25" value="${Number.isFinite(cfg.z) ? cfg.z : design.insets.zoom}" ${dis}></label>
         <div class="acts"><button class="btn small" type="button" data-imove="-1" data-key="${key}">←</button><button class="btn small" type="button" data-imove="1" data-key="${key}">→</button>
         <button class="btn small" type="button" data-ireset-inset="${key}" ${dis}>${esc(t('insp.resetInset'))}</button><button class="btn small" type="button" data-iremove="${key}">${esc(t('insp.remove'))}</button></div>`;
     }
