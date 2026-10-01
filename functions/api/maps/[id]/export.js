@@ -16,7 +16,7 @@ export async function onRequestPost({ request, env, params }) {
   const p = planOf(user);
   if (!p.sizes.includes(size)) return json({ error: 'size_locked' }, 402);
   const used = await exportsUsed(env, user.id);
-  if (used >= p.exports) return json({ error: 'export_limit', left: 0 }, 402);
+  if (used >= p.exports && !user.admin) return json({ error: 'export_limit', left: 0 }, 402);
   await env.DB.prepare('INSERT INTO exports (user_id, month, count) VALUES (?, ?, 1) ON CONFLICT (user_id, month) DO UPDATE SET count = count + 1').bind(user.id, month()).run();
   return json({ ok: true, left: p.exports === Infinity ? null : p.exports - used - 1 });
 }

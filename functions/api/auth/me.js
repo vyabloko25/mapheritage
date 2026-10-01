@@ -9,7 +9,7 @@ export async function onRequestGet({ request, env }) {
   const plans = Object.fromEntries(Object.entries(PLANS).map(([k, v]) => [k, { ...v, exports: v.exports === Infinity ? null : v.exports }]));
   if (!u) return json({ user: null, google: !!env.GOOGLE_CLIENT_ID, plans, print: !!env.PRINTS });
   const p = planOf(u), used = await exportsUsed(env, u.id);
-  return json({ user: { email: u.email, name: u.name, plan: u.plan === 'pro' ? 'pro' : 'lite', proRequested: !!u.pro_requested, google: !!u.google_sub },
+  return json({ user: { email: u.email, name: u.name, plan: u.plan === 'pro' ? 'pro' : 'lite', proRequested: !!u.pro_requested, google: !!u.google_sub, admin: !!u.admin },
     exportsLeft: p.exports === Infinity ? null : Math.max(0, p.exports - used), google: !!env.GOOGLE_CLIENT_ID, plans, print: !!env.PRINTS });
 }
 
