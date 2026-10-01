@@ -2,6 +2,10 @@
 (function () {
   const D = {
  "en": {
+  "hero.t1": "Every family has",
+  "hero.t2": "its own geography.",
+  "f.signName": "Vasily Yablokov",
+  "acc.adminPlan": "Test: switch to {plan}",
   "toast.reduced": "Image downloaded at {w} px wide: this device cannot draw the full size. Use a computer for full print quality.",
   "reset.save": "Save and sign in",
   "reset.new.t": "Choose a new password",
@@ -491,6 +495,10 @@
   "p.mi": "mi"
  },
  "ru": {
+  "hero.t1": "У каждой семьи",
+  "hero.t2": "своя география.",
+  "f.signName": "Василий Яблоков",
+  "acc.adminPlan": "Тест: переключить на {plan}",
   "toast.reduced": "Изображение скачано шириной {w} px: это устройство не может нарисовать полный размер. Для полного качества печати используйте компьютер.",
   "reset.save": "Сохранить и войти",
   "reset.new.t": "Новый пароль",

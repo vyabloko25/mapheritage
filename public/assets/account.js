@@ -69,11 +69,13 @@
         <p class="planline"><span class="badge ${u.plan}">${esc(t('pl.' + u.plan))}</span> ${esc(left == null ? t('acc.unlimited') : t('acc.exports', { n: left }))}</p>
         <a href="/plans">${esc(t('acc.plans'))}</a>${extra.map((x, i) => `<button type="button" data-i="${i}" class="${x.danger ? 'danger' : ''}">${esc(x.label)}</button>`).join('')}
         <a href="/api/auth/export" download>${esc(t('acc.data'))}</a>
+        ${A.me.user.admin ? `<button type="button" data-act="adminPlan">${esc(t('acc.adminPlan', { plan: A.me.user.plan === 'pro' ? 'Lite' : 'Pro' }))}</button>` : ''}
         <button type="button" data-act="out">${esc(t('acc.signout'))}</button><button type="button" data-act="del" class="danger">${esc(t('acc.delAcc'))}</button>`;
       btn.parentNode.appendChild(pop);
       pop.onclick = async (e) => {
         const b = e.target.closest('button'); if (!b) return;
         if (b.dataset.i) { close(); return extra[+b.dataset.i].run(); }
+        if (b.dataset.act === 'adminPlan') { await fetch('/api/auth/admin', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ plan: A.me.user.plan === 'pro' ? 'lite' : 'pro' }) }); location.reload(); }
         if (b.dataset.act === 'out') { await fetch('/api/auth/logout', { method: 'POST' }); location.reload(); }
         if (b.dataset.act === 'del') {
           if (prompt(t('acc.delAccQ')) !== 'DELETE') return;
