@@ -17,12 +17,14 @@
   .top nav a:not(.btn) { color: var(--ink); text-decoration: none; }
   .top nav a:not(.btn):hover { color: var(--red); }
   .hero { padding: clamp(24px, 4vw, 56px) clamp(16px, 4vw, 48px) 0; }
-  .hero-head { display: grid; grid-template-columns: 6fr 5fr; gap: clamp(24px, 4vw, 64px); align-items: end; max-width: 1400px; margin: 0 auto clamp(28px, 4vw, 48px); }
+  .hero-head { display: grid; grid-template-columns: 6fr 5fr; gap: clamp(24px, 4vw, 64px); align-items: start; max-width: 1400px; margin: 0 auto clamp(28px, 4vw, 48px); }
   .kicker { font: italic 19px var(--serif); color: var(--red); margin: 0 0 14px; }
   /* The title always sits on exactly two lines: the font shrinks with the column so the longer line fits. */
   .hero-title { container-type: inline-size; min-width: 0; }
   .hero h1 { font-size: min(88px, 100cqi / 9.2); line-height: 1.02; margin: 0; }
   .hero h1 span { display: block; white-space: nowrap; }
+  /* top of the capitals in line with the top of the text on the right */
+  @media (min-width: 1001px) { .hero h1 { margin-top: -0.08em; } }
   @media (max-width: 1000px) { .hero-head { grid-template-columns: 1fr !important; } .hero h1 { font-size: min(76px, 100cqi / 9.2); } }
   .top .langbtn { margin-left: -4px; }
   .founder { background: var(--card); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
@@ -88,7 +90,7 @@
 </header>
 <section class="hero">
   <div class="hero-head">
-    <div class="hero-title"><h1><span data-i18n="hero.t1">Every family has</span> <span data-i18n="hero.t2">its own geography.</span></h1></div>
+    <div class="hero-title"><h1><span data-i18n="hero.t1">Every family has</span> <span data-i18n="hero.t2">its own geography</span></h1></div>
     <div class="hero-lead"><p data-i18n="hero.lead" data-fit="reserve"></p>
       <div class="acts"><a class="btn big primary" href="/create" data-i18n="hero.cta">Make your family’s map</a><a class="linkbtn" href="#story" data-i18n="hero.cta2">How it began</a></div></div>
   </div>
