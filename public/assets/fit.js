@@ -24,7 +24,14 @@
       n = count(base); el.style.minHeight = Math.max(...n) * parseFloat(getComputedStyle(el).lineHeight) + 'px';
     }
   }
-  function fitAll() { document.querySelectorAll(SEL).forEach(fitOne); }
+  // Paragraphs marked data-fit="reserve" keep the height of their longest translation, so the layout around them stays put.
+  function reserve(el) {
+    el.style.minHeight = ''; if (!el.clientWidth) return;
+    const size = parseFloat(getComputedStyle(el).fontSize), lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.5;
+    const n = Math.max(...I18N.langs.map((l) => lines(el, I18N.tIn(l, el.dataset.i18n), size)));
+    el.style.minHeight = n * lh + 'px';
+  }
+  function fitAll() { document.querySelectorAll(SEL).forEach(fitOne); document.querySelectorAll('[data-fit="reserve"][data-i18n]').forEach(reserve); }
   let tm = 0; const later = () => { clearTimeout(tm); tm = setTimeout(fitAll, 120); };
   window.addEventListener('resize', later);
   I18N.on(() => requestAnimationFrame(fitAll));

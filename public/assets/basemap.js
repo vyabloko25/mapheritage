@@ -1,5 +1,5 @@
 /* MapHeritage vector base map.
-   Data: Natural Earth (public domain), relief from ETOPO5 (NOAA, public domain), built by tools/build_geo.py.
+   Data: Natural Earth (public domain), relief from ETOPO1 (NOAA) and Natural Earth, public domain, built by tools/build_geo.py.
    Coordinates are normalised Web Mercator (0..1). One renderer draws both the screen and the export,
    so what you see is what you download. All widths are in poster units and multiplied by V.f. */
 (function () {
@@ -144,66 +144,85 @@
   function worldImage(ctx, im, V) { const R = range(V); for (let k = Math.floor(R.xa); k <= Math.floor(R.xb); k++) ctx.drawImage(im, k * V.s - V.x0, -V.y0, V.s, V.s); }
   const merc = (lat) => { const s = Math.sin((Math.max(-85.05, Math.min(85.05, lat)) * Math.PI) / 180); return 0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI); };
   const unmerc = (y) => (Math.atan(Math.sinh(Math.PI * (1 - 2 * y))) * 180) / Math.PI;
-  // ---------- relief styles: hypsometric tints, contours, hachures, pictorial mountains ----------
-  // elev.png: smoothed elevation class (0 sea … 6 over 3000 m) × 40, Web Mercator 4096².
+  // ---------- relief styles ----------
+  // elev.png: land elevation coded as 255 * sqrt(h / 6000) (ETOPO10), Web Mercator 4096². relief.jpg: hillshade, grey 128 = flat.
   const EN = 4096;
   function elevData() {
     if (store.elevData) return store.elevData;
     if (!store.elev) { img('elev', 'elev.png'); return null; }
     const c = canvas(EN, EN), g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(store.elev, 0, 0);
-    const rgba = g.getImageData(0, 0, EN, EN).data, a = new Uint8Array(EN * EN);
-    for (let i = 0; i < a.length; i++) a[i] = rgba[i * 4];
+    const rgba = g.getImageData(0, 0, EN, EN).data, a = new Float32Array(EN * EN);
+    for (let i = 0; i < a.length; i++) { const v = rgba[i * 4] / 255; a[i] = v > 0 ? v * v * 6000 : -1; }
     c.width = c.height = 1;
     return (store.elevData = a);
   }
-  // Elevation class at a world position (fractions of the world, x wraps), bilinear.
+  // Elevation in metres at a world position (fractions of the world, x wraps), bilinear; -1 = sea.
   function elevAt(a, X, Y) {
     const x = (((X % 1) + 1) % 1) * EN - 0.5, y = Math.max(0, Math.min(EN - 1.001, Y * EN - 0.5));
     const i = Math.floor(x), j = Math.floor(y), fx = x - i, fy = y - j, i0 = ((i % EN) + EN) % EN, i1 = (i0 + 1) % EN, r0 = j * EN, r1 = Math.min(EN - 1, j + 1) * EN;
-    return ((a[r0 + i0] * (1 - fx) + a[r0 + i1] * fx) * (1 - fy) + (a[r1 + i0] * (1 - fx) + a[r1 + i1] * fx) * fy) / 40;
+    return (a[r0 + i0] * (1 - fx) + a[r0 + i1] * fx) * (1 - fy) + (a[r1 + i0] * (1 - fx) + a[r1 + i1] * fx) * fy;
   }
   const hex2 = (c) => { const m = /^#?([0-9a-f]{6})$/i.exec(c || ''); if (!m) return [128, 128, 128]; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   const mixC = (a, b, t) => [0, 1, 2].map((k) => a[k] + (b[k] - a[k]) * t);
-  // Seven tints, index = elevation class (0 unused).
+  const STOPS = [0, 100, 200, 400, 700, 1000, 1500, 2000, 3000, 4500];
+  // One colour per stop.
   function tints(S) {
     const R = S.relief, land = hex2(S.land), ink = hex2(R.color || S.coast.color);
-    if (R.palette === 'classic') return ['#000000', '#B7D1A2', '#D3DFA6', '#EBE2AE', '#E1C392', '#C79B70', '#F2EDE7'].map(hex2);
-    if (R.palette === 'mono') return [0, 0, 0.07, 0.13, 0.21, 0.31, 0.42].map((t) => mixC(land, ink, t));
-    const brown = [138, 90, 43], cream = [244, 236, 216];
-    return [land, land, mixC(land, brown, 0.09), mixC(land, brown, 0.18), mixC(land, brown, 0.3), mixC(land, brown, 0.44), mixC(land, cream, 0.55)];
+    if (R.palette === 'classic') return ['#A9C79A', '#BFD4A1', '#D3DDA9', '#E5E0AF', '#E6D3A0', '#DCBE8C', '#CDA478', '#BE9273', '#C9B8AC', '#F2EEEA'].map(hex2);
+    if (R.palette === 'swiss') return ['#B9C7A6', '#C4CDA9', '#D0D3AE', '#DCD8B3', '#E2D9B5', '#E5D7B4', '#E3D3B5', '#E2D3BE', '#E8E1D6', '#F6F4F0'].map(hex2);
+    if (R.palette === 'mono') return [0, 0.03, 0.06, 0.1, 0.14, 0.18, 0.23, 0.28, 0.34, 0.4].map((t) => mixC(land, ink, t));
+    const brown = [138, 90, 43], cream = [246, 239, 222];
+    return [0, 0.04, 0.08, 0.13, 0.19, 0.25, 0.32, 0.4, 0.3, 0.1].map((t, i) => (i < 8 ? mixC(land, brown, t) : mixC(mixC(land, brown, 0.3), cream, i === 8 ? 0.4 : 0.85)));
   }
-  function hypso(ctx, V, S, a, alpha) {
-    const k = Math.max(1, Math.round(1.6 * V.f)), w = Math.ceil(V.w / k), h = Math.ceil(V.h / k), T = tints(S);
+  function tintAt(T, h, banded) {
+    let k = 0; while (k < STOPS.length - 1 && h >= STOPS[k + 1]) k++;
+    if (banded || k === STOPS.length - 1) return T[k];
+    return mixC(T[k], T[k + 1], (h - STOPS[k]) / (STOPS[k + 1] - STOPS[k]));
+  }
+  function hypso(ctx, V, S, a, alpha, banded) {
+    const k = Math.max(1, Math.round(1.5 * V.f)), w = Math.ceil(V.w / k), h = Math.ceil(V.h / k), T = tints(S);
     const c = canvas(w, h), g = c.getContext('2d'), im = g.createImageData(w, h), d = im.data;
     for (let y = 0; y < h; y++) {
       const Y = (V.y0 + (y + 0.5) * k) / V.s; if (Y < 0 || Y > 1) continue;
       for (let x = 0; x < w; x++) {
-        const e = elevAt(a, (V.x0 + (x + 0.5) * k) / V.s, Y); if (e < 0.5) continue;
-        const b = Math.min(6, Math.max(1, Math.floor(e + 0.5))), fr = e + 0.5 - b; // soft edge at band borders
-        let col = T[b];
-        if (fr > 0.88 && b < 6) col = mixC(T[b], T[b + 1], (fr - 0.88) / 0.24); else if (fr < 0.12 && b > 1) col = mixC(T[b], T[b - 1], (0.12 - fr) / 0.24);
-        const o = (y * w + x) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
+        const e = elevAt(a, (V.x0 + (x + 0.5) * k) / V.s, Y); if (e < -0.5) continue;
+        const col = tintAt(T, Math.max(0, e), banded), o = (y * w + x) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
       }
     }
     g.putImageData(im, 0, 0);
     ctx.save(); ctx.globalAlpha = alpha; ctx.imageSmoothingEnabled = true; ctx.drawImage(c, 0, 0, w * k, h * k); ctx.restore();
   }
-  // Contour lines at the class borders (150, 300, 600, 1500, 3000 m) by marching squares.
-  function contours(ctx, V, S, a, alpha) {
-    const R = range(V), cell = Math.max(1, Math.round((EN / V.s) * 2.6 * V.f)), f = V.f;
+  // Hill shading: 'hard-light' is neutral at grey 128, darkens shadows and lifts sunlit slopes. Above 1 the image is laid twice.
+  function shade(ctx, V, amt) {
+    if (!store.relief) { img('relief', 'relief.jpg'); return; }
+    ctx.save(); ctx.globalCompositeOperation = 'hard-light';
+    for (let left = amt; left > 0.001; left -= 1) { ctx.globalAlpha = Math.min(1, left); worldImage(ctx, store.relief, V); }
+    ctx.restore();
+  }
+  const levelsFor = (z) => (z < 4.5 ? [200, 500, 1000, 2000, 3000, 4000] : z < 6 ? [100, 200, 400, 700, 1000, 1500, 2000, 2500, 3000, 4000] : [50, 100, 200, 300, 400, 500, 700, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000]);
+  // Contours by marching squares. tanaka: lit side light, shadow side dark, width by how squarely the slope faces the light.
+  function contours(ctx, V, S, a, alpha, tanaka) {
+    const R = range(V), f = V.f, z = zoomOf(V) - Math.log2(f), cell = Math.max(1, Math.round((EN / V.s) * 2.4 * f));
     const i0 = Math.floor((R.xa * EN) / cell), i1 = Math.ceil((R.xb * EN) / cell), j0 = Math.max(0, Math.floor((R.ya * EN) / cell)), j1 = Math.min(Math.floor((EN - 1) / cell), Math.ceil((R.yb * EN) / cell));
     const nx = i1 - i0 + 1, ny = j1 - j0 + 1; if (nx < 2 || ny < 2 || nx * ny > 4e6) return;
     const G = new Float32Array(nx * ny);
-    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const ii = ((((i0 + i) * cell) % EN) + EN) % EN; G[j * nx + i] = a[(j0 + j) * cell * EN + ii] / 40; }
-    const P = (i, j) => [((i0 + i) * cell / EN) * V.s - V.x0, ((j0 + j) * cell / EN) * V.s - V.y0];
-    ctx.save(); ctx.strokeStyle = S.relief.color || S.coast.color; ctx.lineJoin = ctx.lineCap = 'round';
-    for (const lv of [1.5, 2.5, 3.5, 4.5, 5.5]) {
-      const p = new Path2D();
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) { const ii = ((((i0 + i) * cell) % EN) + EN) % EN; G[j * nx + i] = a[(j0 + j) * cell * EN + ii]; }
+    const cw = (cell / EN) * V.s, X0 = (i0 * cell / EN) * V.s - V.x0, Y0 = (j0 * cell / EN) * V.s - V.y0;
+    const ink = S.relief.color || S.coast.color, lit = mixC(hex2(S.land), [255, 255, 255], 0.5);
+    const bins = tanaka ? [0, 1, 2, 3, 4, 5].map(() => new Path2D()) : null, plain = new Path2D(), major = new Path2D();
+    const LV = levelsFor(z);
+    for (const lv of LV) {
+      const isMajor = lv % 1000 === 0;
       for (let j = 0; j < ny - 1; j++) for (let i = 0; i < nx - 1; i++) {
         const a0 = G[j * nx + i], b0 = G[j * nx + i + 1], c0 = G[(j + 1) * nx + i + 1], d0 = G[(j + 1) * nx + i];
         const code = (a0 > lv ? 8 : 0) | (b0 > lv ? 4 : 0) | (c0 > lv ? 2 : 0) | (d0 > lv ? 1 : 0); if (code === 0 || code === 15) continue;
-        const [x, y] = P(i, j), [x2, y2] = P(i + 1, j + 1), dx = x2 - x, dy = y2 - y;
-        const top = [x + dx * ((lv - a0) / (b0 - a0)), y], right = [x2, y + dy * ((lv - b0) / (c0 - b0))], bot = [x + dx * ((lv - d0) / (c0 - d0)), y2], left = [x, y + dy * ((lv - a0) / (d0 - a0))];
+        const x = X0 + i * cw, y = Y0 + j * cw, x2 = x + cw, y2 = y + cw;
+        const top = [x + cw * ((lv - a0) / (b0 - a0)), y], right = [x2, y + cw * ((lv - b0) / (c0 - b0))], bot = [x + cw * ((lv - d0) / (c0 - d0)), y2], left = [x, y + cw * ((lv - a0) / (d0 - a0))];
+        let p = isMajor ? major : plain;
+        if (tanaka) { // downhill direction · light from the north-west
+          const gx = (b0 - a0 + c0 - d0) / 2, gy = (d0 - a0 + c0 - b0) / 2, gl = Math.hypot(gx, gy) || 1, face = (-gx / gl) * -0.7071 + (-gy / gl) * -0.7071;
+          p = bins[(face >= 0 ? 0 : 3) + Math.min(2, Math.floor(Math.abs(face) * 3))];
+        }
         const seg = (u, v) => { p.moveTo(u[0], u[1]); p.lineTo(v[0], v[1]); };
         switch (code) {
           case 1: case 14: seg(left, bot); break; case 2: case 13: seg(bot, right); break; case 3: case 12: seg(left, right); break;
@@ -211,60 +230,39 @@
           case 5: seg(left, top); seg(bot, right); break; case 10: seg(top, right); seg(left, bot); break;
         }
       }
-      ctx.globalAlpha = alpha * (lv === 4.5 ? 1 : 0.75); ctx.lineWidth = (lv === 4.5 ? 0.9 : 0.5) * f; ctx.stroke(p);
+    }
+    ctx.save(); ctx.lineJoin = ctx.lineCap = 'round';
+    if (tanaka) {
+      for (let b = 0; b < 6; b++) {
+        const litSide = b < 3, k = (b % 3) + 0.5;
+        ctx.strokeStyle = litSide ? `rgb(${lit.map(Math.round)})` : ink; ctx.globalAlpha = alpha * (litSide ? 0.95 : 0.75);
+        ctx.lineWidth = (0.25 + 0.35 * k) * f; ctx.stroke(bins[b]);
+      }
+    } else {
+      ctx.strokeStyle = ink; ctx.globalAlpha = alpha * 0.7; ctx.lineWidth = 0.5 * f; ctx.stroke(plain);
+      ctx.globalAlpha = alpha; ctx.lineWidth = 0.95 * f; ctx.stroke(major);
     }
     ctx.restore();
   }
   // World-anchored grid so marks stay put while panning: cell size in world fractions, a power of two near `px`.
   function grid(V, px, fn) {
-    const R = range(V), cm = 2 ** Math.round(Math.log2(px / V.s)), cs = cm * V.s;
-    for (let i = Math.floor(R.xa / cm) - 1; i <= Math.ceil(R.xb / cm) + 1; i++) for (let j = Math.floor(R.ya / cm) - 1; j <= Math.ceil(R.yb / cm) + 1; j++) fn(i, j, cm, cs);
+    const R = range(V), cm = 2 ** Math.round(Math.log2(px / V.s));
+    for (let i = Math.floor(R.xa / cm) - 1; i <= Math.ceil(R.xb / cm) + 1; i++) for (let j = Math.floor(R.ya / cm) - 1; j <= Math.ceil(R.yb / cm) + 1; j++) fn(i, j, cm);
   }
+  // Hachures: short strokes down the slope, heavier where it is steeper (Lehmann's rule, simplified).
   function hachures(ctx, V, S, a, alpha) {
-    const f = V.f, dens = S.relief.density || 1, sp = (4.2 / dens) * f;
-    const p1 = new Path2D(), p2 = new Path2D();
+    const f = V.f, dens = S.relief.density || 1, sp = (4 / dens) * f, bins = [new Path2D(), new Path2D(), new Path2D()];
     grid(V, sp, (i, j, cm) => {
       const X = (i + 0.4 + hash(i, j, 7) * 0.2) * cm, Y = (j + 0.4 + hash(i, j, 8) * 0.2) * cm; if (Y < 0 || Y > 1) return;
-      const e = elevAt(a, X, Y); if (e < 2.3) return; // hills and mountains only, the plains stay clean
-      const dd = Math.max(cm, 3 / EN), gx = (elevAt(a, X + dd, Y) - elevAt(a, X - dd, Y)) / 2, gy = (elevAt(a, X, Y + dd) - elevAt(a, X, Y - dd)) / 2;
-      const g = Math.hypot(gx, gy), m = g / (dd * EN), t = Math.min(1, Math.max(0, (m - 0.05) / 0.3) * Math.min(1, (e - 2.3) / 1.5)); if (t <= 0.05) return;
-      const px = X * V.s - V.x0, py = Y * V.s - V.y0, L = sp * (0.8 + 1.1 * t), ux = -gx / g, uy = -gy / g;
-      const p = t > 0.5 ? p2 : p1; p.moveTo(px - ux * L * 0.5, py - uy * L * 0.5); p.lineTo(px + ux * L * 0.5, py + uy * L * 0.5);
+      const e = elevAt(a, X, Y); if (e < 120) return;
+      const dd = Math.max(cm, 1.2 / EN), gx = elevAt(a, X + dd, Y) - elevAt(a, X - dd, Y), gy = elevAt(a, X, Y + dd) - elevAt(a, X, Y - dd);
+      const lat = unmerc(Y), mPerFrac = 40075016 * Math.cos((lat * Math.PI) / 180), slope = Math.hypot(gx, gy) / (2 * dd * mPerFrac);
+      const t = Math.min(1, Math.max(0, (slope - 0.006) / 0.035)); if (t <= 0.04) return;
+      const g = Math.hypot(gx, gy), ux = -gx / g, uy = -gy / g, px = X * V.s - V.x0, py = Y * V.s - V.y0, L = sp * (0.85 + 0.9 * t);
+      const p = bins[Math.min(2, Math.floor(t * 3))]; p.moveTo(px - ux * L * 0.5, py - uy * L * 0.5); p.lineTo(px + ux * L * 0.5, py + uy * L * 0.5);
     });
     ctx.save(); ctx.strokeStyle = S.relief.color || S.coast.color; ctx.lineCap = 'round';
-    ctx.globalAlpha = alpha * 0.6; ctx.lineWidth = 0.5 * f; ctx.stroke(p1);
-    ctx.globalAlpha = alpha; ctx.lineWidth = 0.85 * f; ctx.stroke(p2);
-    ctx.restore();
-  }
-  // Pictorial mountains ("molehills") in the old style: drawn back to front, shaded on the east side.
-  function mountains(ctx, V, S, a, alpha) {
-    const f = V.f, dens = S.relief.density || 1, sp = (24 / dens) * f, list = [];
-    grid(V, sp, (i, j, cm) => {
-      const X = (i + 0.15 + hash(i, j, 11) * 0.7) * cm, Y = (j + 0.25 + hash(i, j, 12) * 0.6) * cm; if (Y < 0 || Y > 1) return;
-      const e = elevAt(a, X, Y), r = hash(i, j, 13);
-      if (e >= 3.3) list.push({ x: X * V.s - V.x0, y: Y * V.s - V.y0, h: (9 + Math.min(3, e - 3.3) * 6.5) * f * (0.85 + r * 0.3), big: true, r });
-      else if (e >= 2.4 && r < 0.45) list.push({ x: X * V.s - V.x0, y: Y * V.s - V.y0, h: 5 * f, big: false, r });
-    });
-    list.sort((p, q) => p.y - q.y);
-    const ink = S.relief.color || S.coast.color;
-    ctx.save(); ctx.lineJoin = 'round'; ctx.lineCap = 'round';
-    for (const m of list) {
-      if (m.x < -40 * f || m.y < -10 * f || m.x > V.w + 40 * f || m.y > V.h + 40 * f) continue;
-      const w = m.h * (m.big ? 1.45 : 2.2), lean = (m.r - 0.5) * 0.25 * w, p = new Path2D();
-      p.moveTo(m.x - w / 2, m.y);
-      p.quadraticCurveTo(m.x - w * 0.22 + lean * 0.5, m.y - m.h * 0.55, m.x + lean, m.y - m.h);
-      p.quadraticCurveTo(m.x + w * 0.2 + lean * 0.5, m.y - m.h * 0.5, m.x + w / 2, m.y);
-      ctx.globalAlpha = 1;
-      if (m.big) { ctx.fillStyle = S.land; ctx.fill(p); }
-      ctx.globalAlpha = alpha;
-      if (m.big) {
-        ctx.save(); ctx.clip(p); ctx.strokeStyle = ink; ctx.lineWidth = 0.55 * f; ctx.beginPath();
-        for (let k = 0; k < 5; k++) { const sx = m.x + lean + w * (0.04 + k * 0.09); ctx.moveTo(sx, m.y - m.h * (0.9 - k * 0.12)); ctx.lineTo(sx + w * 0.16, m.y); }
-        ctx.stroke(); ctx.restore();
-      }
-      ctx.strokeStyle = ink; ctx.lineWidth = (m.big ? 0.95 : 0.7) * f; ctx.stroke(p);
-      if (m.big) { ctx.globalAlpha = alpha * 0.6; ctx.beginPath(); ctx.moveTo(m.x - w * 0.62, m.y + 0.6 * f); ctx.lineTo(m.x + w * 0.62, m.y + 0.6 * f); ctx.lineWidth = 0.6 * f; ctx.stroke(); }
-    }
+    bins.forEach((p, k) => { ctx.globalAlpha = alpha * (0.45 + 0.27 * k); ctx.lineWidth = (0.4 + 0.3 * k) * f; ctx.stroke(p); });
     ctx.restore();
   }
 
@@ -306,15 +304,12 @@
     ctx.restore();
 
     ctx.save(); ctx.clip(P.land);
-    const RS = S.relief.on ? S.relief.style || 'shade' : 'none', ea = RS !== 'none' && RS !== 'shade' ? elevData() : null;
-    const lineFade = Math.max(0, Math.min(1, (9.5 - z) / 2.5));
-    if (ea && RS === 'hypso') hypso(ctx, V, S, ea, (S.relief.alpha ?? 0.85) * Math.max(0, Math.min(1, (11.5 - z) / 2)));
-    if (S.relief.on && S.relief.amt > 0 && (RS === 'shade' || S.relief.shade !== false)) {
-      const fade = Math.max(0, Math.min(1, (10 - z) / 3));
-      if (store.relief && fade > 0) { ctx.globalCompositeOperation = S.relief.mode || 'soft-light'; ctx.globalAlpha = S.relief.amt * fade; worldImage(ctx, store.relief, V); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; }
-      else if (!store.relief) img('relief', 'relief.jpg');
-    }
-    if (ea && lineFade > 0 && RS === 'contour') contours(ctx, V, S, ea, (S.relief.alpha ?? 0.6) * lineFade);
+    let RS = S.relief.on ? S.relief.style || 'shade' : 'none'; if (RS === 'pictorial') RS = 'hachure';
+    const ea = RS !== 'none' && RS !== 'shade' ? elevData() : null, lineFade = Math.max(0, Math.min(1, (10 - z) / 2.5)), tintFade = Math.max(0, Math.min(1, (11.5 - z) / 2));
+    if (ea && (RS === 'hypso' || RS === 'tanaka' || RS === 'swiss')) hypso(ctx, V, S, ea, (S.relief.alpha ?? 0.9) * tintFade, RS !== 'swiss');
+    if (S.relief.on && S.relief.amt > 0 && (RS === 'shade' || RS === 'swiss' || S.relief.shade !== false)) { const fade = Math.max(0, Math.min(1, (10.5 - z) / 3)); if (fade > 0) shade(ctx, V, S.relief.amt * fade); }
+    if (ea && lineFade > 0 && RS === 'contour') contours(ctx, V, S, ea, (S.relief.alpha ?? 0.6) * lineFade, false);
+    if (ea && lineFade > 0 && RS === 'tanaka') contours(ctx, V, S, ea, (S.relief.lines ?? 0.9) * lineFade, true);
     if (ea && lineFade > 0 && RS === 'hachure') hachures(ctx, V, S, ea, (S.relief.alpha ?? 0.7) * lineFade);
     if (S.tex.type && S.tex.type !== 'none') {
       ctx.globalAlpha = S.tex.alpha;
@@ -325,7 +320,6 @@
       ctx.globalAlpha = 1;
     }
     ctx.restore();
-    if (ea && lineFade > 0 && RS === 'pictorial') mountains(ctx, V, S, ea, (S.relief.alpha ?? 0.85) * lineFade);
 
     ctx.fillStyle = S.lake || S.sea; ctx.fill(P.lakes);
     if (S.rivers.on) {

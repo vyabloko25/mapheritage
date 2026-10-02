@@ -26,7 +26,7 @@
     water: { n: 6, gap: 3.1, w: 0.7, color: '#4A3521', alpha: 0.42 },
     depth: { color: '#9FB3A6', alpha: 0.5 },
     shadow: { color: 'rgba(70,48,20,.45)', blur: 9, dx: 0, dy: 0 },
-    relief: { style: 'shade', amt: 0.8, shade: true, alpha: 0.8, density: 1, palette: 'sepia', color: '' },
+    relief: { style: 'shade', amt: 0.9, shade: true, alpha: 0.85, lines: 0.9, density: 1, palette: 'sepia', color: '' },
     tex: { type: 'coast', color: '#6B5030', alpha: 0.55 },
     coast: { color: '#4A3521', w: 1 },
     rivers: { color: '#5F7A7E', w: 1 },
@@ -44,16 +44,16 @@
     city: { style: 'engraved', hatch: true },
     show: SHOW,
     ships: null, autoShips: 2, shipTypes: ['galleon', 'caravel'], texts: [],
-    panel: 'auto', panelSize: 0.3, insets: { max: 8, shape: 'circle', zoom: 13, pick: null }, subtitle: '', view: null,
+    panel: 'auto', panelSize: 0.3, insets: { max: 8, shape: 'circle', zoom: 13, detail: 3, pick: null }, subtitle: '', view: null,
     legendTitle: '', panelTitle: '', pos: {}, insetCfg: {},
   };
   const PRESETS = {
-    discovery: { show: { rhumbs: true }, rhumbs: { alpha: 0.18 }, relief: { style: 'pictorial', amt: 0.45, alpha: 0.85 } },
+    discovery: { show: { rhumbs: true }, rhumbs: { alpha: 0.18 }, relief: { style: 'hachure', amt: 0.55, alpha: 0.8, color: '#5A3E22' } },
     portolan: {
       font: 'cormorant', paper: '#EDDCAB', ink: '#2B1D12', accent: '#A3261B', frameColor: '#2B1D12',
       palette: ['#A3261B', '#2F5E3A', '#1E3F73', '#B07A1E', '#6B2C55', '#2B1D12', '#8C4A22', '#3E6E70'],
       sea: '#E7D3A0', land: '#F1E3B8', water: { n: 2, gap: 2.2, color: '#2B1D12', alpha: 0.35 }, shadow: { color: 'rgba(90,60,20,.3)', blur: 5 },
-      relief: { style: 'pictorial', amt: 0.35, shade: false, alpha: 0.9, density: 0.9 }, tex: { type: 'coast', color: '#A3261B', alpha: 0.45 }, coast: { color: '#2B1D12', w: 1.3 }, rivers: { color: '#4C6E86', w: 0.9 },
+      relief: { style: 'hachure', amt: 0.3, shade: false, alpha: 0.65, density: 0.85 }, tex: { type: 'coast', color: '#A3261B', alpha: 0.45 }, coast: { color: '#2B1D12', w: 1.3 }, rivers: { color: '#4C6E86', w: 0.9 },
       rhumbs: { colors: ['#2B1D12', '#2F6E3A', '#A3261B'], alpha: 0.5, w: 0.55, network: true },
       waves: { color: '#2B1D12', alpha: 0.4, density: 0.22 },
       aging: { amount: 0.8, seed: 11 }, vignette: 'rgba(90,55,15,.4)',
@@ -65,7 +65,7 @@
       font: 'oldstandard', paper: '#F4F1E8', ink: '#1D2A33', accent: '#7A1E1E', frameColor: '#1D2A33',
       palette: ['#B22A1E', '#1B3F8F', '#2C6E49', '#C08A1E', '#6A2C70', '#1F7A8C', '#8A4F2A', '#333333'],
       sea: '#EEF4F4', land: '#EFE2BF', water: { n: 3, gap: 2.2, w: 0.55, color: '#4F7A8E', alpha: 0.7 }, depth: { color: '#A9CCD8', alpha: 0.85 },
-      shadow: { color: 'rgba(40,60,70,.25)', blur: 4 }, relief: { style: 'hachure', amt: 0.3, alpha: 0.75 }, tex: { type: 'stipple', color: '#8A6A3A', alpha: 0.5 },
+      shadow: { color: 'rgba(40,60,70,.25)', blur: 4 }, relief: { style: 'contour', amt: 0.6, alpha: 0.55, color: '#7A5A3A' }, tex: { type: 'stipple', color: '#8A6A3A', alpha: 0.5 },
       coast: { color: '#1D2A33', w: 1.05 }, rivers: { color: '#4F7A8E', w: 0.9 }, borders: { style: 'dashdot', color: '#6A5A48', w: 0.7, ribbon: '' },
       grat: { color: '#1D2A33', alpha: 0.4, w: 0.6, dash: false }, vignette: 'rgba(0,0,0,0)', aging: { amount: 0.22, seed: 21 },
       routes: { style: 'solid', width: 2.4, curve: 0.16, arrows: true }, markers: { style: 'ring' }, labels: { style: 'roman', halo: 'halo' },
@@ -76,7 +76,7 @@
       font: 'garamond', paper: '#111822', ink: '#E7D6A8', accent: '#D4A64A', frameColor: '#D4A64A',
       palette: ['#E8674A', '#6FA8DC', '#8BC48A', '#E6C15A', '#C58BC8', '#5FC2C2', '#E0A36E', '#DDDDDD'],
       sea: '#152131', land: '#223044', lake: '#152131', water: { n: 5, gap: 3.4, w: 0.6, color: '#D4A64A', alpha: 0.28 }, depth: { color: '#1C3148', alpha: 0.9 },
-      shadow: { color: 'rgba(212,166,74,.38)', blur: 14 }, relief: { style: 'contour', amt: 0.75, alpha: 0.4, color: '#D4A64A', palette: 'mono' }, tex: { type: 'none' },
+      shadow: { color: 'rgba(212,166,74,.38)', blur: 14 }, relief: { style: 'tanaka', amt: 0.6, alpha: 0.9, lines: 0.8, color: '#05080D', palette: 'mono' }, tex: { type: 'none' },
       coast: { color: '#D4A64A', w: 0.9 }, rivers: { color: '#4C6D8C', w: 0.9 }, borders: { style: 'dotted', color: '#8C99A8', w: 0.9, ribbon: '' },
       grat: { color: '#D4A64A', alpha: 0.28, w: 0.7, dash: true }, rhumbs: { colors: ['#D4A64A', '#8C99A8', '#8C99A8'], alpha: 0.22, w: 0.5 },
       waves: { color: '#D4A64A', alpha: 0.4, density: 0.25 }, vignette: 'rgba(0,0,0,.55)',
@@ -87,7 +87,7 @@
     atlas: {
       font: 'jost', paper: '#FFFFFF', ink: '#1A1A1A', accent: '#E0301E', frameColor: '#1A1A1A',
       palette: ['#E0301E', '#1F3FBF', '#F2B705', '#00875A', '#F26B1D', '#6B3FA0', '#0097B2', '#1A1A1A'],
-      sea: '#D5E5EE', land: '#F4F2EC', water: { n: 0 }, relief: { style: 'hypso', amt: 0.4, alpha: 0.9, palette: 'classic' }, tex: { type: 'none' },
+      sea: '#D5E5EE', land: '#F4F2EC', water: { n: 0 }, relief: { style: 'swiss', amt: 1, alpha: 0.95, palette: 'classic' }, tex: { type: 'none' },
       coast: { color: '#86A3B4', w: 0.8 }, rivers: { color: '#8DB2C8', w: 0.9 }, borders: { style: 'solid', color: '#A8A8A8', w: 0.7, ribbon: '' },
       grat: { color: '#7A93A3', alpha: 0.35, w: 0.6, dash: false }, vignette: 'rgba(0,0,0,0)',
       routes: { style: 'casing', width: 3.6, curve: 0.14, arrows: true, casing: '#FFFFFF' }, markers: { style: 'ring' }, labels: { style: 'roman', halo: 'halo' },
@@ -613,7 +613,7 @@
   }
   function svgAttribution(L, ds, F, m) {
     const osm = ds.show.insets && m && m.insets.length && m.insets.some((p) => { const c = (ds.insetCfg || {})[p.key] || {}; return (Number.isFinite(c.z) ? c.z : ds.insets.zoom) >= 11; });
-    return `<text x="${L.outer.x + L.outer.w}" y="${L.H - 14}" text-anchor="end" font-family="${esc(F.text)}" font-size="11" fill="${ds.ink}" fill-opacity=".6">MapHeritage · Natural Earth · ETOPO5 (NOAA)${osm ? ' · © OpenStreetMap contributors' : ''}</text>`;
+    return `<text x="${L.outer.x + L.outer.w}" y="${L.H - 14}" text-anchor="end" font-family="${esc(F.text)}" font-size="11" fill="${ds.ink}" fill-opacity=".6">MapHeritage · Natural Earth · ETOPO1 (NOAA)${osm ? ' · © OpenMapTiles · © OpenStreetMap contributors' : ''}</text>`;
   }
   const NOISE = `<svg xmlns='http://www.w3.org/2000/svg' width='320' height='320'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 .42 0 0 0 0 .32 0 0 0 0 .2 0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(#n)'/></svg>`;
   const NOISE_URL = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(NOISE);
@@ -837,14 +837,54 @@
       const svg = `<svg width="${box}" height="${box}" viewBox="${-1.5} ${pin ? -2.9 : -1.5} 3 3" style="overflow:visible">${parts.map(([d, fill, stroke, sw]) => `<path d="${d}" fill="${fill}" ${stroke ? `stroke="${stroke}" stroke-width="${sw}"` : ''} stroke-linejoin="round"/>`).join('')}</svg>`;
       return L.divIcon({ className: 'p-mark', html: svg, iconSize: [box, box], iconAnchor: [box / 2, pin ? box * 0.97 : box / 2] });
     }
+    // Label placement: the most important places first; each label tries eight spots around its marker and is
+    // left out when none is free of other labels, markers, the cartouche, legend, compass, scale, ships and lettering.
+    let measureCtx = null;
+    function placeLabels() {
+      const out = {}; if (!D || !D.show.labels || !M) return out;
+      const F = FONTS[D.font] || FONTS.alegreya, fs = 15 * D.labelSize * f, st = D.labels.style, caps = st === 'caps';
+      measureCtx ||= document.createElement('canvas').getContext('2d');
+      measureCtx.font = `${st === 'italic' ? 'italic' : 'normal'} 400 ${fs}px ${F.text}`;
+      const sz = main.map.getSize(), pad = D.labels.halo === 'box' ? 5 * f : 2 * f, gap = 4 * f, taken = [];
+      const hit = (r) => taken.some((q) => r.x < q.x + q.w && r.x + r.w > q.x && r.y < q.y + q.h && r.y + r.h > q.y);
+      for (const k of ['cartouche', 'legend', 'compass', 'scale']) { const b = boxes[k]; if (b) taken.push({ x: (b.x - Lr.M.x) * f, y: (b.y - Lr.M.y) * f, w: b.w * f, h: b.h * f }); }
+      for (const k in boxes) if (/^(ship|text):/.test(k)) { const b = boxes[k]; taken.push({ x: (b.x - Lr.M.x) * f, y: (b.y - Lr.M.y) * f, w: b.w * f, h: b.h * f }); }
+      const pts = M.all.map((pl) => ({ pl, p: main.map.latLngToContainerPoint([pl.e.lat, pl.e.lng]), R: markerR(D, pl.people.size > 1) * f }));
+      pts.forEach(({ p, R }) => taken.push({ x: p.x - R, y: p.y - R, w: 2 * R, h: 2 * R }));
+      const order = pts.slice().sort((a, b) => b.pl.list.length - a.pl.list.length || a.pl.n - b.pl.n);
+      for (const { pl, p, R } of order) {
+        let txt = (D.show.numbers ? pl.n + '. ' : '') + (pl.e.place || pl.e.query || ''); if (caps) txt = txt.toUpperCase();
+        const w = measureCtx.measureText(txt).width * (caps ? 1.12 : 1) + 2 * pad, h = fs * 1.25, yo = D.markers.style === 'pin' ? -R * 1.6 : 0, d = R + gap;
+        const cands = [
+          { dir: 'right', dx: d, dy: yo, x: p.x + d, y: p.y + yo - h / 2 }, { dir: 'left', dx: -d, dy: yo, x: p.x - d - w, y: p.y + yo - h / 2 },
+          { dir: 'right', dx: d * 0.7, dy: -d * 0.8 - h / 2, x: p.x + d * 0.7, y: p.y - d * 0.8 - h }, { dir: 'right', dx: d * 0.7, dy: d * 0.8 + h / 2, x: p.x + d * 0.7, y: p.y + d * 0.8 },
+          { dir: 'left', dx: -d * 0.7, dy: -d * 0.8 - h / 2, x: p.x - d * 0.7 - w, y: p.y - d * 0.8 - h }, { dir: 'left', dx: -d * 0.7, dy: d * 0.8 + h / 2, x: p.x - d * 0.7 - w, y: p.y + d * 0.8 },
+          { dir: 'top', dx: 0, dy: -d, x: p.x - w / 2, y: p.y - d - h }, { dir: 'bottom', dx: 0, dy: d, x: p.x - w / 2, y: p.y + d },
+        ];
+        let ok = null;
+        for (const c of cands) { const r = { x: c.x, y: c.y, w, h }; if (r.x < 2 * f || r.y < 2 * f || r.x + w > sz.x - 2 * f || r.y + h > sz.y - 2 * f) continue; if (!hit(r)) { ok = c; taken.push(r); break; } }
+        out[pl.key] = ok ? { ...ok, w, h, txt } : { hidden: true };
+      }
+      return out;
+    }
+    let labelled = [];
+    function relabel() {
+      const pos = placeLabels(), F = FONTS[D.font] || FONTS.alegreya;
+      for (const { mk, pl } of labelled) {
+        mk.unbindTooltip(); const q = pos[pl.key]; if (!q || q.hidden) continue;
+        const dir = q.dir === 'top' || q.dir === 'bottom' ? q.dir : q.dir, off = q.dir === 'top' || q.dir === 'bottom' ? [0, q.dy] : [q.dx, q.dy];
+        mk.bindTooltip((D.show.numbers ? pl.n + '. ' : '') + esc(pl.e.place || pl.e.query), { permanent: true, direction: dir, offset: off, className: `p-label ${D.labels.style} h-${D.labels.halo} d-${q.dir}` });
+      }
+      void F;
+    }
     function vectors(animate, highlight) {
-      timers.forEach(clearTimeout); timers = []; main.group.clearLayers();
+      timers.forEach(clearTimeout); timers = []; main.group.clearLayers(); labelled = [];
       const F = FONTS[D.font] || FONTS.alegreya, drawn = {};
       const marker = (pl) => {
         if (drawn[pl.key]) return; drawn[pl.key] = 1;
         const multi = pl.people.size > 1, ll = [pl.e.lat, pl.e.lng], R = markerR(D, multi) * f;
         const mk = L.marker(ll, { icon: markerIcon(pl), interactive: !!opts.onPlace, keyboard: false }).addTo(main.group);
-        if (D.show.labels) mk.bindTooltip((D.show.numbers ? pl.n + '. ' : '') + esc(pl.e.place || pl.e.query), { permanent: true, direction: 'right', offset: [R + 5 * f, D.markers.style === 'pin' ? -R * 1.6 : 0], className: `p-label ${D.labels.style} h-${D.labels.halo}` });
+        labelled.push({ mk, pl }); void R; if (D.show.labels) relabel();
         if (opts.onPlace) mk.on('click', () => opts.onPlace(pl));
       };
       const route = (s, i, anim) => {
@@ -876,7 +916,8 @@
     function insetCity(x) { const z = insetZoom(x), c = x.map.getCenter().wrap(); return { lat: c.lat, lng: c.lng, z }; }
     function insetContext(x) {
       const S2 = insetStyle(x), c = insetCity(x);
-      return { V: { f, lz: lz(x.map) }, S: S2, after: (g, V) => CityMap.draw(g, V, S2, CityMap.get(c.lat, c.lng, c.z), D.city) };
+      const cfg = (x.place && (D.insetCfg || {})[x.place.key]) || {}, detail = Number.isFinite(cfg.d) ? cfg.d : D.insets.detail ?? 3;
+      return { V: { f, lz: lz(x.map) }, S: S2, after: (g, V) => CityMap.draw(g, V, S2, CityMap.get(c.lat, c.lng, c.z), D.city, detail) };
     }
     function setupInsets() {
       while (insets.length > M.insets.length) { const x = insets.pop(); x.map.remove(); x.el.remove(); }
@@ -942,7 +983,7 @@
       vectors(o.animate, o.highlight); setupInsets(); overlay(); paperFx();
     }
     main.map.on('moveend', () => {
-      if (!S) return; overlay();
+      if (!S) return; overlay(); if (D.show.labels && labelled.length) relabel();
       if (!applying && opts.onView) { const c = main.map.getCenter().wrap(); opts.onView({ lat: +c.lat.toFixed(5), lng: +c.lng.toFixed(5), z: +(main.map.getZoom() - Math.log2(f)).toFixed(3) }); }
     });
     main.map.on('zoomend', () => S && vectors(false));
@@ -975,7 +1016,7 @@
       get ships() { return shipList().map((x) => ({ ...x })); },
       currentView: () => { const c = main.map.getCenter().wrap(); return { lat: c.lat, lng: c.lng, z: main.map.getZoom() - Math.log2(f) }; },
       destroy() { timers.forEach(clearTimeout); insets.forEach((x) => x.map.remove()); main.map.remove(); root.remove(); },
-      _parts: () => ({ main, insets, mapEl, over, f, Lr, D, M, S, rhumbCenters, lz, insetContext }),
+      _parts: () => ({ main, insets, mapEl, over, f, Lr, D, M, S, rhumbCenters, lz, insetContext, placeLabels }),
     };
   }
 
@@ -1020,10 +1061,10 @@
       const fs = 15 * D.labelSize * f, st = D.labels.style, caps = st === 'caps';
       c.font = `${st === 'italic' ? 'italic' : 'normal'} 400 ${fs}px ${F.text}`; c.textBaseline = 'middle';
       if ('letterSpacing' in c) c.letterSpacing = caps ? fs * 0.1 + 'px' : '0px';
+      const pos = P.placeLabels(), pad = D.labels.halo === 'box' ? 5 * f : 2 * f;
       for (const pl of M.all) {
-        const multi = pl.people.size > 1, R = markerR(D, multi) * f, p = pt([pl.e.lat, pl.e.lng]);
-        let txt = (D.show.numbers ? pl.n + '. ' : '') + (pl.e.place || pl.e.query || ''); if (caps) txt = txt.toUpperCase();
-        const x = p.x + R + 5 * f + 2 * f, y = p.y + (D.markers.style === 'pin' ? -R * 1.6 : 0);
+        const q = pos[pl.key]; if (!q || q.hidden) continue;
+        const txt = q.txt, x = q.x + pad, y = q.y + q.h / 2;
         if (D.labels.halo === 'box') { const w = c.measureText(txt).width; c.fillStyle = D.paper; c.fillRect(x - 4 * f, y - fs * 0.62, w + 8 * f, fs * 1.24); c.strokeStyle = D.ink; c.lineWidth = f; c.strokeRect(x - 4 * f, y - fs * 0.62, w + 8 * f, fs * 1.24); }
         else if (D.labels.halo === 'halo') { c.lineWidth = 4 * f; c.strokeStyle = D.paper; c.lineJoin = 'round'; c.strokeText(txt, x, y); }
         c.fillStyle = D.ink; c.fillText(txt, x, y);
