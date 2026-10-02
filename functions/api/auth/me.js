@@ -21,7 +21,7 @@ export async function onRequestDelete({ request, env }) {
   const maps = await env.DB.prepare('SELECT id FROM maps WHERE owner_id = ?').bind(u.id).all();
   const stmts = (maps.results || []).map((m) => env.DB.prepare('DELETE FROM snapshots WHERE map_id = ?').bind(m.id));
   stmts.push(env.DB.prepare('DELETE FROM maps WHERE owner_id = ?').bind(u.id), env.DB.prepare('DELETE FROM sessions WHERE user_id = ?').bind(u.id),
-    env.DB.prepare('DELETE FROM exports WHERE user_id = ?').bind(u.id), env.DB.prepare('DELETE FROM password_resets WHERE user_id = ?').bind(u.id),
+    env.DB.prepare('DELETE FROM exports WHERE user_id = ?').bind(u.id), env.DB.prepare('DELETE FROM password_resets WHERE user_id = ?').bind(u.id), env.DB.prepare('DELETE FROM styles WHERE user_id = ?').bind(u.id),
     // Print orders are business records with a legal retention period: they stay, but are no longer linked to the account.
     env.DB.prepare('UPDATE print_orders SET user_id = NULL WHERE user_id = ?').bind(u.id),
     env.DB.prepare('DELETE FROM users WHERE id = ?').bind(u.id));

@@ -9,8 +9,16 @@ import { limit } from '../../../lib/rate.js';
 export async function onRequestGet({ request, env }) {
   const bad = needDb(env); if (bad) return bad;
   const { user, res } = await requireUser(request, env); if (res) return res;
-  const r = await env.DB.prepare('SELECT id, title, updated_at, shared FROM maps WHERE owner_id = ? ORDER BY updated_at DESC LIMIT 200').bind(user.id).all();
-  return json({ maps: (r.results || []).map((m) => ({ ...m, shared: m.shared === 1 })) });
+  const r = await env.DB.prepare('SELECT id, title, state, created_at, updated_at, shared FROM maps WHERE owner_id = ? ORDER BY updated_at DESC LIMIT 200').bind(user.id).all();
+  // A short summary per project for the projects screen.
+  const maps = (r.results || []).map((m) => {
+    let st = {}; try { st = JSON.parse(m.state); } catch {}
+    const ev = st.events || [], places = new Set(ev.filter((e) => Number.isFinite(e.lat)).map((e) => e.lat.toFixed(2) + ',' + e.lng.toFixed(2)));
+    const d = st.design || {};
+    return { id: m.id, title: m.title, mode: st.mode || 'family', preset: d.preset || 'discovery', colors: [d.paper, d.sea, d.land, d.ink, d.accent].filter((c) => /^#[0-9a-f]{6}$/i.test(c || '')),
+      people: (st.people || []).length, places: places.size, events: ev.length, created_at: m.created_at, updated_at: m.updated_at, shared: m.shared === 1 };
+  });
+  return json({ maps });
 }
 
 // POST /api/maps { lang, mode, options, state? } — create a private map owned by the user.

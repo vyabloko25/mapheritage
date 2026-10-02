@@ -96,9 +96,22 @@
     },
   };
   const PRESET_KEYS = Object.keys(PRESETS);
+  // A neutral starting point for a style of one's own (Pro: "build from scratch"). Not shown among the five styles.
+  const BLANK = {
+    font: 'jost', paper: '#FFFFFF', ink: '#222222', accent: '#C0392B', frameColor: '#222222',
+    palette: ['#C0392B', '#2C5D8F', '#3E7D4A', '#C08A1E', '#7A3B6A', '#2E8C8C', '#7A5A3A', '#444444'],
+    sea: '#E8EEF2', land: '#FAFAF7', lake: '', water: { n: 0 }, depth: { alpha: 0 }, shadow: { blur: 0 },
+    relief: { style: 'shade', amt: 0.5, palette: 'mono', color: '' }, tex: { type: 'none' }, coast: { color: '#666666', w: 0.8 }, rivers: { color: '#9DB4C0', w: 0.8 },
+    borders: { style: 'dotted', color: '#9A9A9A', w: 0.7, ribbon: '' }, grat: { color: '#9A9A9A', alpha: 0.3, w: 0.5, dash: false },
+    rhumbs: { alpha: 0 }, waves: { alpha: 0 }, aging: { amount: 0 }, vignette: 'rgba(0,0,0,0)',
+    routes: { style: 'solid', width: 2.2, curve: 0.12, arrows: false, casing: '' }, markers: { style: 'dot', size: 1 }, labels: { style: 'roman', halo: 'halo' },
+    frame: { style: 'line' }, cartouche: { style: 'block' }, compass: { style: 'simple' }, scale: { style: 'line' }, city: { style: 'modern' },
+    show: { graticule: false, degrees: false, rhumbs: false, relief: false, waterlines: false, depth: false, shadow: false, stipple: false, ships: false, waves: false, aging: false, texture: false, vignette: false }, autoShips: 0,
+  };
+  const ALL_PRESETS = { ...PRESETS, blank: BLANK };
   const isObj = (x) => x && typeof x === 'object' && !Array.isArray(x);
   function merge(a, b) { const o = { ...a }; for (const k in b || {}) o[k] = isObj(b[k]) && isObj(a[k]) ? merge(a[k], b[k]) : b[k]; return o; }
-  function preset(name) { const n = PRESETS[name] ? name : 'discovery'; return merge(merge(BASE, PRESETS[n]), { preset: n }); }
+  function preset(name) { const n = ALL_PRESETS[name] ? name : 'discovery'; return merge(merge(BASE, ALL_PRESETS[n]), { preset: n }); }
   // Keys that belong to the old raster version; ignored now.
   const LEGACY = ['basemap', 'tint', 'tintAmt', 'sat', 'bright', 'contrast'];
   function design(d, mode) {
@@ -907,8 +920,21 @@
     }
     // The inset's own scale: zoom of a 170-unit window, whatever size the inset has on the poster.
     function insetZoom(x) { const r = Lr && Lr.ins[x.i]; return r ? x.map.getZoom() - Math.log2((f * r.w) / 170) : 0; }
+    // Insets can have a look of their own: a style for all of them (insets.look) or one per inset (insetCfg[key].look).
+    function insetDesign(x) {
+      const cfg = (x.place && (D.insetCfg || {})[x.place.key]) || {}, look = cfg.look || D.insets.look || '';
+      let Di = D;
+      if (look && look !== 'custom' && ALL_PRESETS[look]) Di = merge(preset(look), { show: D.show });
+      const c = D.insets.colors || {};
+      if (look === 'custom') {
+        const o = {}; if (c.sea) o.sea = c.sea; if (c.land) o.land = c.land; if (c.lake) o.lake = c.lake; if (c.ink) o.coast = { ...D.coast, color: c.ink };
+        if (c.city) o.city = { ...D.city, style: c.city }; if (typeof c.hatch === 'boolean') o.city = { ...(o.city || D.city), hatch: c.hatch };
+        Di = merge(Di, o);
+      }
+      return Di;
+    }
     function insetStyle(x) {
-      const z = insetZoom(x), st = { ...baseStyle(D, lz(x.map)), rhumbs: { on: false }, waves: { on: false }, grat: { on: false } };
+      const Di = insetDesign(x), z = insetZoom(x), st = { ...baseStyle(Di, lz(x.map)), rhumbs: { on: false }, waves: { on: false }, grat: { on: false } };
       st.borders = { on: false }; // insets show the settlement, not countries
       if (z >= CityMap.MIN_Z) { st.rivers = { on: false }; st.tex = { type: 'none' }; st.water = { on: false }; }
       return st;
@@ -917,7 +943,8 @@
     function insetContext(x) {
       const S2 = insetStyle(x), c = insetCity(x);
       const cfg = (x.place && (D.insetCfg || {})[x.place.key]) || {}, detail = Number.isFinite(cfg.d) ? cfg.d : D.insets.detail ?? 3;
-      return { V: { f, lz: lz(x.map) }, S: S2, after: (g, V) => CityMap.draw(g, V, S2, CityMap.get(c.lat, c.lng, c.z), D.city, detail) };
+      const Di = insetDesign(x);
+      return { V: { f, lz: lz(x.map) }, S: S2, after: (g, V) => CityMap.draw(g, V, S2, CityMap.get(c.lat, c.lng, c.z), Di.city, detail) };
     }
     function setupInsets() {
       while (insets.length > M.insets.length) { const x = insets.pop(); x.map.remove(); x.el.remove(); }
@@ -1144,7 +1171,8 @@
   }
   const slug = (s) => (s || 'family-map').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 60) || 'family-map';
   // Small swatches for style pickers.
-  const swatch = (name) => { const p = preset(name); return `linear-gradient(90deg,${p.paper} 0 22%,${p.sea} 22% 48%,${p.land} 48% 72%,${p.palette[0]} 72% 84%,${p.accent} 84%)`; };
+  const swatchOf = (p) => `linear-gradient(90deg,${p.paper} 0 22%,${p.sea} 22% 48%,${p.land} 48% 72%,${p.palette[0]} 72% 84%,${p.accent} 84%)`;
+  const swatch = (name) => swatchOf(typeof name === 'string' ? preset(name) : design(name));
 
-  window.Poster = { info, create, exportPNG, exportWidth, SIZES, design, preset, PRESETS, PRESET_KEYS, BASE, FONTS, SHIP_TYPES, model, colors, chrono, hasGeo, keyOf, esc, rel, years, span, download, slug, treeLayout, swatch, merge };
+  window.Poster = { info, create, exportPNG, exportWidth, SIZES, design, preset, PRESETS, PRESET_KEYS, BLANK, BASE, FONTS, SHIP_TYPES, model, colors, chrono, hasGeo, keyOf, esc, rel, years, span, download, slug, treeLayout, swatch, swatchOf, merge };
 })();

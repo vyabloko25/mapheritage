@@ -51,10 +51,7 @@
     if (i >= 0) maps[i].title = m.title || ''; else maps.unshift({ id: m.id, title: m.title || '' });
     renderMyMaps();
   }
-  function renderMyMaps() {
-    const sel = $('myMaps'); sel.hidden = maps.length < 2;
-    sel.innerHTML = maps.map((m) => `<option value="${m.id}" ${cur && m.id === cur.id ? 'selected' : ''}>${esc(m.title || t('untitled'))}</option>`).join('');
-  }
+  function renderMyMaps() { if (!$('projects').hidden) renderProjects(); }
 
   function setState(next, o = {}) {
     const before = new Set(state ? state.events.map((e) => e.id) : []);
@@ -127,21 +124,72 @@
   $('input').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send($('input').value); } });
   $('form').addEventListener('submit', (e) => { e.preventDefault(); send($('input').value); });
 
-  function showStart() {
-    setView('chat');
-    $('start').hidden = false; $('log').hidden = true; $('form').hidden = true; $('hint').hidden = true;
-    $('start').innerHTML = `<h2>${esc(t('start.title'))}</h2>
-      ${['journey', 'family'].map((m) => `<button class="mode" type="button" data-mode="${m}"><b>${esc(t('s.' + m + '.t'))}</b><span>${esc(t('s.' + m + '.p'))}</span></button>`).join('')}
-      <div class="mode tree"><b>${esc(t('s.tree.t'))}</b><span>${esc(t('s.tree.p'))}</span>
-        <label><input type="checkbox" id="sideOpt"> ${esc(t('start.side'))}</label>
-        <div class="two-ways"><button class="btn small primary" type="button" data-mode="tree">${esc(t('s.tree.a'))}</button><button class="btn small" type="button" data-ged="1">${esc(t('s.tree.b'))}</button></div></div>`;
+  // ---------- projects ----------
+  // Three ways to begin; each starts in a style that suits it (changeable later in Design).
+  const TEMPLATES = [
+    { mode: 'journey', key: 'tpl.personal', preset: 'discovery' },
+    { mode: 'family', key: 'tpl.family', preset: 'admiralty' },
+    { mode: 'tree', key: 'tpl.tree', preset: 'atlas' },
+  ];
+  let menuFor = null;
+  const fmtDate = (t0) => { try { return new Date(t0).toLocaleDateString(I18N.lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
+  function showProjects() {
+    $('projects').hidden = false; document.body.classList.add('in-projects');
+    document.documentElement.style.setProperty('--barh', document.querySelector('.bar').getBoundingClientRect().height + 'px');
+    renderProjects(); loadMaps();
   }
-  function hideStart() { $('start').hidden = true; $('log').hidden = false; $('form').hidden = false; $('hint').hidden = false; }
-  $('start').addEventListener('click', (e) => {
-    const b = e.target.closest('button'); if (!b) return;
-    if (b.id === 'toImport' || b.dataset.ged) return setView('import');
-    if (b.dataset.mode) createNew(b.dataset.mode, { side: !!($('sideOpt') && $('sideOpt').checked) });
+  function hideProjects() { $('projects').hidden = true; document.body.classList.remove('in-projects'); menuFor = null; }
+  function showStart() { showProjects(); }
+  function hideStart() { hideProjects(); }
+  function renderProjects() {
+    const el = $('projects'), tl = (m) => t('tpl.' + ({ journey: 'personal', family: 'family', tree: 'tree' }[m] || 'family') + '.t');
+    el.innerHTML = `<div class="wrap">
+      <h2><span>${esc(t('proj.new'))}</span>${cur && state ? `<button class="btn small" type="button" data-close>${esc(t('proj.back'))}</button>` : ''}</h2>
+      <p class="lead">${esc(t('proj.newLead'))}</p>
+      <div class="tpls">${TEMPLATES.map((T) => `<div class="tpl" role="button" tabindex="0" data-tpl="${T.mode}"><i style="background:${Poster.swatch(T.preset)}"></i><div><b>${esc(t(T.key + '.t'))}</b><span>${esc(t(T.key + '.p'))}</span>
+        ${T.mode === 'tree' ? `<div class="row2"><label><input type="checkbox" id="sideOpt"> ${esc(t('start.side'))}</label><button class="btn small" type="button" data-ged>${esc(t('s.tree.b'))}</button></div>` : ''}</div></div>`).join('')}</div>
+      <h2><span>${esc(t('proj.mine'))}</span></h2>
+      ${maps.length ? `<div class="plist">${maps.map((m) => `<div class="proj ${cur && m.id === cur.id ? 'cur' : ''}">
+          <button class="open" type="button" data-open="${m.id}"><i style="background:${m.colors && m.colors.length >= 5 ? `linear-gradient(90deg,${m.colors[0]} 0 22%,${m.colors[1]} 22% 48%,${m.colors[2]} 48% 72%,${m.colors[3]} 72% 84%,${m.colors[4]} 84%)` : Poster.swatch(m.preset || 'discovery')}"></i>
+          <span class="meta"><span class="badge">${esc(tl(m.mode))}${m.shared ? ' · ' + esc(t('proj.shared')) : ''}</span><b>${esc(m.title || t('untitled'))}</b>
+          <span>${esc(t('proj.counts', { p: m.people ?? 0, l: m.places ?? 0 }))} · ${esc(fmtDate(m.updated_at))}</span></span></button>
+          <button class="more" type="button" data-more="${m.id}" aria-label="${esc(t('proj.actions'))}">⋯</button>
+          ${menuFor === m.id ? `<div class="menu"><button type="button" data-rename="${m.id}">${esc(t('proj.rename'))}</button><button type="button" data-dup="${m.id}">${esc(t('proj.duplicate'))}</button><button type="button" class="danger" data-del="${m.id}">${esc(t('proj.delete'))}</button></div>` : ''}
+        </div>`).join('')}</div>` : `<p class="empty">${esc(t('proj.none'))}</p>`}
+    </div>`;
+  }
+  $('projects').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-tpl],[data-open],[data-more],[data-rename],[data-dup],[data-del],[data-close],[data-ged]');
+    if (!b) { if (menuFor) { menuFor = null; renderProjects(); } return; }
+    const d = b.dataset;
+    if (d.close !== undefined) return hideProjects();
+    if (d.ged !== undefined) { e.stopPropagation(); hideProjects(); return setView('import'); }
+    if (e.target.closest('label')) return;
+    if (d.tpl) { const T = TEMPLATES.find((x) => x.mode === d.tpl); hideProjects(); return createNew(T.mode, { side: !!($('sideOpt') && $('sideOpt').checked) }, { design: { preset: T.preset } }, { view: 'chat' }); }
+    if (d.open) { hideProjects(); if (!cur || d.open !== cur.id) load(d.open); return; }
+    if (d.more) { menuFor = menuFor === d.more ? null : d.more; return renderProjects(); }
+    menuFor = null;
+    if (d.rename) {
+      const m = maps.find((x) => x.id === d.rename), name = prompt(t('proj.renameAsk'), m ? m.title : ''); if (name == null) return renderProjects();
+      try { await api(`/api/maps/${d.rename}`, { title: name }, 'PATCH'); if (cur && cur.id === d.rename) { state.title = name.trim(); $('title').value = state.title; } await loadMaps(); } catch (e2) { toast(e2.message); }
+      return;
+    }
+    if (d.dup) {
+      const m = maps.find((x) => x.id === d.dup);
+      try { await api(`/api/maps/${d.dup}/duplicate`, { lang: I18N.lang, title: (m && m.title ? m.title + ' — ' : '') + t('proj.copy') }); toast(t('proj.copied')); await loadMaps(); } catch (e2) { toast(e2.message); }
+      return;
+    }
+    if (d.del) {
+      if (!confirm(t('confirm.delMap'))) return renderProjects();
+      try {
+        await api(`/api/maps/${d.del}`, {}, 'DELETE'); maps = maps.filter((x) => x.id !== d.del);
+        if (cur && cur.id === d.del) { cur = null; state = null; store.set('mh:current', null); }
+        toast(t('toast.removed')); renderProjects();
+      } catch (e2) { toast(e2.message); }
+    }
   });
+  $('projects').addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset.tpl) { e.preventDefault(); e.target.click(); } });
+  $('projectsBtn').addEventListener('click', () => ($('projects').hidden ? showProjects() : cur && state ? hideProjects() : null));
 
   // ---------- saving ----------
   async function saveState(msg) {
@@ -281,7 +329,8 @@
   const sel = (path, values, prefix) => `<select data-set="${path}">${opts(values.map((v) => [v, t(prefix + v)]), get(path))}</select>`;
   const range = (path, min, max, step) => `<input type="range" data-set="${path}" data-num="1" min="${min}" max="${max}" step="${step}" value="${get(path) ?? min}">`;
   const hex = (c) => (/^#[0-9a-f]{6}$/i.test(c || '') ? c : '#888888');
-  const color = (path) => `<input type="color" data-set="${path}" value="${hex(get(path) || (path === 'relief.color' ? design.coast.color : ''))}">`;
+  const colorDefault = (path) => ({ 'relief.color': design.coast.color, 'insets.colors.sea': design.sea, 'insets.colors.land': design.land, 'insets.colors.lake': design.lake || design.sea, 'insets.colors.ink': design.coast.color })[path] || '';
+  const color = (path) => `<input type="color" data-set="${path}" value="${hex(get(path) || colorDefault(path))}">`;
   const check = (path, label) => `<label><input type="checkbox" data-set="${path}" ${get(path) ? 'checked' : ''}> ${esc(t(label))}</label>`;
   const ctl = (label, html) => `<div class="ctl"><span>${esc(t(label))}</span>${html}</div>`;
   const lockB = () => (pro() ? '' : `<b class="lock">${esc(t('pro'))}</b>`);
@@ -300,13 +349,18 @@
     const ships = poster.ships, autoShips = !Array.isArray(design.ships);
     const texts = design.texts || [];
     $('design').innerHTML = `
-      <section><h3>${esc(t('d.presets'))}</h3><div class="presets">${Poster.PRESET_KEYS.map((k) => `<button type="button" data-preset="${k}" aria-pressed="${design.preset === k}"><i style="background:${Poster.swatch(k)}"></i><span>${esc(t('d.preset.' + k))}</span></button>`).join('')}</div>
+      <section><h3>${esc(t('d.presets'))}</h3><div class="presets">${Poster.PRESET_KEYS.map((k) => `<button type="button" data-preset="${k}" aria-pressed="${design.preset === k && !design.userStyle}"><i style="background:${Poster.swatch(k)}"></i><span>${esc(t('d.preset.' + k))}</span></button>`).join('')}
+        ${myStyles.map((st) => `<button type="button" class="mine" data-ustyle="${esc(st.id)}" aria-pressed="${design.userStyle === st.id}"><i style="background:${Poster.swatch(st.design)}"></i><span>${esc(st.name)}</span>${pro() ? `<b class="x" data-udel="${esc(st.id)}" title="${esc(t('f.delete'))}">×</b>` : ''}</button>`).join('')}</div>
+        <div class="stylebox"><button class="btn small" type="button" data-act="scratch">${esc(t('d.scratch'))}${lockB()}</button><button class="btn small" type="button" data-act="saveStyle">${esc(t(design.userStyle ? 'd.updateStyle' : 'd.saveStyle'))}${lockB()}</button></div>
         <p class="note" style="margin-top:10px">${esc(t(pro() ? 'insp.dragHint' : 'd.liteHint'))}</p></section>
       <section><h3>${esc(t('d.layout'))}</h3>${ctl('d.format', seg('format', ['landscape', 'portrait', 'square'], 'd.format.'))}
         ${ctl('d.panel', sel('panel', ['auto', 'tree', 'chronicle', 'none'], 'd.panel.'))}
         ${ctl('d.subtitle', `<input data-set="subtitle" value="${esc(design.subtitle)}" placeholder="${esc(t('d.subtitle.ph'))}">`)}</section>
       <section><h3>${esc(t('d.elements'))}</h3>${Object.entries(SHOW_GROUPS).map(([g, ks]) => `<p class="note grp">${esc(t(g))}</p><div class="checks">${ks.map((k) => check('show.' + k, 'd.show.' + k)).join('')}</div>`).join('')}</section>
-      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 7, 16.5, 0.25))}</div>${ctl('d.insets.detail', range('insets.detail', 1, 5, 1))}<p class="note">${esc(t('d.insets.osm'))}</p>
+      <section><h3>${esc(t('d.insets'))}</h3><div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.shape', seg('insets.shape', ['circle', 'square'], 'd.shape.'))}${ctl('d.insets.zoom', range('insets.zoom', 7, 16.5, 0.25))}</div>${ctl('d.insets.detail', range('insets.detail', 1, 5, 1))}
+        <div class="${pro() ? '' : 'locked-sec'}">${ctl('d.insets.look', `<select data-set="insets.look">${opts([['', t('d.look.map')], ...Poster.PRESET_KEYS.map((k) => [k, t('d.preset.' + k)]), ['custom', t('d.look.custom')]], design.insets.look || '')}</select>`)}
+        ${design.insets.look === 'custom' ? `${ctl('d.sea', color('insets.colors.sea'))}${ctl('d.land', color('insets.colors.land'))}${ctl('d.look.water', color('insets.colors.lake'))}${ctl('d.ink', color('insets.colors.ink'))}
+          ${ctl('d.look.city', sel('insets.colors.city', ['engraved', 'modern', 'night'], 'd.city.'))}<div class="checks">${check('insets.colors.hatch', 'd.look.hatch')}</div>` : ''}</div><p class="note">${esc(t('d.insets.osm'))}</p>
         <div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="insAuto" ${picked ? '' : 'checked'}> ${esc(t('d.insets.auto'))}</label></div>
         ${picked ? `<div class="picks">${places.map((p) => `<label><input type="checkbox" data-pick="${p.key}" ${picked.has(p.key) ? 'checked' : ''}> ${esc(p.e.place)} <small>${esc(Poster.span(Poster.years(p.list)))}</small></label>`).join('')}</div>` : ctl('d.insets.max', range('insets.max', 0, 16, 1))}</section>
       <h3 class="prohead">${esc(t('d.fine'))}${lockB()}</h3>
@@ -361,19 +415,40 @@
     if (el.dataset.ship !== undefined && el.tagName === 'SELECT') { poster.ensureShips()[+el.dataset.ship].type = el.value; return designChanged(); }
     if (el.dataset.text !== undefined && el.tagName === 'SELECT') { design.texts[+el.dataset.text].style = el.value; return designChanged(); }
     if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); designChanged(); if (el.dataset.set === 'relief.shade') renderDesign(); return; }
-    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); if (el.dataset.set === 'relief.style') { if (!design.show.relief) design.show.relief = true; renderDesign(); } }
+    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); if (el.dataset.set === 'relief.style') { if (!design.show.relief) design.show.relief = true; renderDesign(); } if (el.dataset.set === 'insets.look') { if (el.value === 'custom') design.insets.colors = { sea: design.sea, land: design.land, lake: design.lake || design.sea, ink: design.coast.color, city: design.city.style, hatch: design.city.hatch !== false, ...(design.insets.colors || {}) }; renderDesign(); } }
   });
   // Switching the style keeps the content and layout the person chose, but takes colours and drawing from the new style.
   const KEEP = ['format', 'subtitle', 'view', 'panel', 'panelSize', 'pos', 'insetCfg', 'legendTitle', 'panelTitle', 'texts', 'ships', 'labelSize'];
+  let myStyles = [];
+  async function loadStyles() { if (!pro()) { myStyles = []; return; } try { myStyles = (await api('/api/styles', null, 'GET')).styles || []; } catch { myStyles = []; } }
+  const styleOnly = (d) => { const o = JSON.parse(JSON.stringify(d)); for (const k of KEEP) delete o[k]; delete o.userStyle; if (o.insets) delete o.insets.pick; return o; };
+  function applyStyle(st) {
+    const keep = {}; for (const k of KEEP) if (design[k] !== undefined) keep[k] = JSON.parse(JSON.stringify(design[k]));
+    const pick = design.insets.pick, max = design.insets.max;
+    design = Poster.design({ ...JSON.parse(JSON.stringify(st)), ...keep }, state.mode); design.insets.pick = pick; design.insets.max = max;
+  }
   function applyPreset(name) {
     const keep = {}; for (const k of KEEP) if (design[k] !== undefined) keep[k] = JSON.parse(JSON.stringify(design[k]));
     const pick = design.insets.pick, max = design.insets.max;
     design = Poster.design({ preset: name, ...keep }, state.mode); design.insets.pick = pick; design.insets.max = max;
   }
-  $('design').addEventListener('click', (e) => {
+  $('design').addEventListener('click', async (e) => {
     const b = e.target.closest('button'); if (!b) return;
     const d = b.dataset;
-    if (d.preset) { applyPreset(d.preset); renderDesign(); return designChanged(); }
+    if (e.target.closest('[data-udel]')) { const id = e.target.closest('[data-udel]').dataset.udel; if (!confirm(t('d.delStyle'))) return; try { await api('/api/styles/' + id, null, 'DELETE'); myStyles = myStyles.filter((x) => x.id !== id); if (design.userStyle === id) delete design.userStyle; renderDesign(); saveDesignSoon(); } catch (e2) { toast(e2.message); } return; }
+    if (d.preset) { applyPreset(d.preset); delete design.userStyle; renderDesign(); return designChanged(); }
+    if (d.ustyle) { const st = myStyles.find((x) => x.id === d.ustyle); if (st) { applyStyle(st.design); design.userStyle = st.id; renderDesign(); designChanged(); } return; }
+    if (d.act === 'scratch') { if (needPro()) return; applyPreset('blank'); delete design.userStyle; openSecs.add('d.colors'); openSecs.add('d.type'); renderDesign(); toast(t('d.scratchHint')); return designChanged(); }
+    if (d.act === 'saveStyle') {
+      if (needPro()) return;
+      const cur0 = myStyles.find((x) => x.id === design.userStyle), name = prompt(t('d.styleName'), cur0 ? cur0.name : t('d.myStyle')); if (!name) return;
+      const same = myStyles.find((x) => x.name === name.trim()) || (cur0 && cur0.name === name.trim() ? cur0 : null);
+      try {
+        const r = await api('/api/styles', { id: same ? same.id : undefined, name, design: styleOnly(design) });
+        myStyles = [r, ...myStyles.filter((x) => x.id !== r.id)]; design.userStyle = r.id; renderDesign(); saveDesignSoon(); toast(t('d.styleSaved'));
+      } catch (e2) { toast(e2.message); }
+      return;
+    }
     if (d.set) { set(d.set, d.val); renderDesign(); return designChanged({ refit: d.set === 'format' && !design.view }); }
     if (d.act === 'resetView') { design.view = null; poster.select(null); paint({ keepView: false }); return saveDesignSoon(); }
     if (d.act === 'resetStyle') { applyPreset(design.preset); renderDesign(); return designChanged(); }
@@ -491,6 +566,7 @@
       html = `<p>${esc(t('insp.panHint'))}</p><label>${esc(t('insp.label'))}${lock}<input data-ilabel="${key}" value="${esc(cfg.label || '')}" placeholder="${esc(pl ? pl.e.place : '')}" ${dis}></label>
         <label>${esc(t('insp.detail'))}${lock}<input type="range" data-izoom="${key}" min="7" max="16.5" step="0.25" value="${Number.isFinite(cfg.z) ? cfg.z : design.insets.zoom}" ${dis}></label>
         <label>${esc(t('insp.roads'))}<input type="range" data-idetail="${key}" min="1" max="5" step="1" value="${Number.isFinite(cfg.d) ? cfg.d : design.insets.detail ?? 3}"></label>
+        <label>${esc(t('d.insets.look'))}${lock}<select data-ilook="${key}" ${dis}>${opts([['', t('d.look.all')], ...Poster.PRESET_KEYS.map((k) => [k, t('d.preset.' + k)])], cfg.look || '')}</select></label>
         <div class="acts"><button class="btn small" type="button" data-imove="-1" data-key="${key}">←</button><button class="btn small" type="button" data-imove="1" data-key="${key}">→</button>
         <button class="btn small" type="button" data-ireset-inset="${key}" ${dis}>${esc(t('insp.resetInset'))}</button><button class="btn small" type="button" data-iremove="${key}">${esc(t('insp.remove'))}</button></div>`;
     }
@@ -515,6 +591,7 @@
     const d = e.target.dataset, sel = poster.selected || '';
     if (e.target.tagName === 'SELECT' && d.iship && sel.startsWith('ship:')) { poster.ensureShips()[+sel.slice(5)].type = e.target.value; paint(); saveDesignSoon(); return; }
     if (e.target.tagName === 'SELECT' && d.itext && sel.startsWith('text:')) { design.texts[+sel.slice(5)].style = e.target.value; paint(); saveDesignSoon(); return; }
+    if (e.target.tagName === 'SELECT' && d.ilook) { const c = ((design.insetCfg ||= {})[d.ilook] ||= {}); if (e.target.value) c.look = e.target.value; else delete c.look; paint(); saveDesignSoon(); return; }
     if (e.target.tagName === 'SELECT' && d.ip) { setPath(d.ip, e.target.value); paint(); saveDesignSoon(); return; }
     if (e.target.dataset.ititle === undefined) return;
     try { const m = await api(`/api/maps/${cur.id}`, { token: cur.token, title: e.target.value }, 'PATCH'); state.title = m.title; $('title').value = m.title; paint(); remember({ ...cur, title: m.title }); } catch (err) { toast(err.message); }
@@ -573,10 +650,9 @@
     void lim;
   }
   $('export').addEventListener('click', exportDialog);
-  $('newMap').addEventListener('click', () => { if (state && state.events.length && !confirm(t('confirm.new'))) return; showStart(); });
-  $('myMaps').addEventListener('change', (e) => load(e.target.value));
+  $('newMap').addEventListener('click', () => { showProjects(); $('projects').scrollTop = 0; });
   let rT; addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => paint(), 150); });
-  I18N.on(() => { renderMyMaps(); paint(); renderLog(); const v = document.querySelector('.app').dataset.view; if (v !== 'chat' && v !== 'map') setView(v); if (!$('start').hidden) showStart(); if (poster.selected) inspector(poster.selected); if (document.body.dataset.auth === 'out') showAuth(); });
+  I18N.on(() => { renderMyMaps(); paint(); renderLog(); const v = document.querySelector('.app').dataset.view; if (v !== 'chat' && v !== 'map') setView(v); if (!$('projects').hidden) renderProjects(); if (poster.selected) inspector(poster.selected); if (document.body.dataset.auth === 'out') showAuth(); });
   async function deleteMap() {
     if (!cur || !confirm(t('acc.delMapQ'))) return;
     try { await api(`/api/maps/${cur.id}`, { token: cur.token }, 'DELETE'); maps = maps.filter((m) => m.id !== cur.id); cur = null; state = null; store.set('mh:current', null); renderMyMaps(); toast(t('toast.removed')); maps.length ? load(maps[0].id) : showStart(); } catch (e) { toast(e.message); }
@@ -594,13 +670,13 @@
       addMsg('err', e.message);
     }
   }
-  async function createNew(mode, options, seed) {
+  async function createNew(mode, options, seed, o = {}) {
     try {
       const r = await api('/api/maps', { lang: I18N.lang, mode, options, state: seed });
       cur = { id: r.id, token: r.token }; closeForms(false); hideStart(); state = null; design = null; poster.select(null);
-      msgs = r.messages; renderLog(); maps.unshift({ id: r.id, title: r.map.title }); remember({ ...cur, title: r.map.title });
+      msgs = r.messages; renderLog(); maps.unshift({ id: r.id, title: r.map.title, mode, preset: (seed && seed.design && seed.design.preset) || 'discovery', people: 0, places: 0, updated_at: Date.now() }); remember({ ...cur, title: r.map.title });
       setState(r.map, { fit: true }); history.replaceState(null, '', '/create?id=' + r.id);
-      setView(seed ? 'design' : 'chat');
+      setView(o.view || (seed && seed.events ? 'design' : 'chat'));
     } catch (e) { toast(e.message); }
   }
   function showAuth() {
@@ -613,7 +689,7 @@
     if (!me.user) return showAuth();
     document.body.dataset.auth = 'in'; $('auth').hidden = true; $('avatar').hidden = false;
     Account.menu($('avatar'), [{ label: t('acc.delMap'), danger: true, run: deleteMap }]);
-    await loadMaps();
+    await Promise.all([loadMaps(), loadStyles()]);
     const qs = new URLSearchParams(location.search), want = qs.get('id') || store.get('mh:current', null);
     if (want && maps.some((m) => m.id === want)) { await load(want); if (qs.get('tab')) setView(qs.get('tab')); }
     else if (maps.length && !qs.get('tab')) await load(maps[0].id);
