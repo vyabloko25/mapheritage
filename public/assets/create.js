@@ -42,6 +42,7 @@
     if (v === 'map' || !small()) requestAnimationFrame(() => paint());
   }
   document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => setView(b.dataset.view)));
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-gate="edit"]')) setView('edit'); });
 
   // ---------- maps list (server) ----------
   async function loadMaps() { try { maps = (await api('/api/maps', null, 'GET')).maps || []; } catch { maps = []; } renderMyMaps(); }
@@ -67,7 +68,19 @@
   }
 
   // ---------- chat ----------
+  // The AI assistant is part of Pro; Lite builds the map by hand in "Edit".
+  const aiOK = () => !!(Account.limits() || {}).ai;
+  function chatGate() {
+    const lock = !aiOK();
+    $('form').hidden = lock; $('hint').hidden = lock;
+    return lock;
+  }
   function renderLog() {
+    if (chatGate()) {
+      $('log').innerHTML = `<div class="gate"><h3>${esc(t('ai.t'))}</h3><p>${esc(t('ai.p'))}</p><ul><li>${esc(t('ai.1'))}</li><li>${esc(t('ai.2'))}</li><li>${esc(t('ai.3'))}</li></ul>
+        <div class="acts"><button class="btn primary" type="button" data-gate="edit">${esc(t('ai.manual'))}</button><a class="btn" href="/plans">${esc(t('ai.pro'))}</a></div></div>`;
+      return;
+    }
     const log = $('log'); log.innerHTML = '';
     msgs.forEach((m, i) => {
       const w = document.createElement('div'); w.className = 'msgwrap ' + (m.role === 'assistant' ? 'bot' : 'me'); w.dataset.i = i;
@@ -165,7 +178,7 @@
     if (d.close !== undefined) return hideProjects();
     if (d.ged !== undefined) { e.stopPropagation(); hideProjects(); return setView('import'); }
     if (e.target.closest('label')) return;
-    if (d.tpl) { const T = TEMPLATES.find((x) => x.mode === d.tpl); hideProjects(); return createNew(T.mode, { side: !!($('sideOpt') && $('sideOpt').checked) }, { design: { preset: T.preset } }, { view: 'chat' }); }
+    if (d.tpl) { const T = TEMPLATES.find((x) => x.mode === d.tpl); hideProjects(); return createNew(T.mode, { side: !!($('sideOpt') && $('sideOpt').checked) }, { design: { preset: T.preset } }, { view: aiOK() ? 'chat' : 'edit' }); }
     if (d.open) { hideProjects(); if (!cur || d.open !== cur.id) load(d.open); return; }
     if (d.more) { menuFor = menuFor === d.more ? null : d.more; return renderProjects(); }
     menuFor = null;
@@ -665,6 +678,7 @@
       const h = await api(`/api/maps/${id}/history`, {});
       msgs = h.messages; renderLog();
       setState(h.map, { fit: true }); remember({ ...cur, title: h.map.title }); history.replaceState(null, '', '/create?id=' + id);
+      if (!aiOK() && document.querySelector('.app').dataset.view === 'chat' && !small()) setView('edit');
     } catch (e) {
       if (e.status === 404 || e.status === 403) { store.set('mh:current', null); return showStart(); }
       addMsg('err', e.message);

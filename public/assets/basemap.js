@@ -168,8 +168,8 @@
   // One colour per stop.
   function tints(S) {
     const R = S.relief, land = hex2(S.land), ink = hex2(R.color || S.coast.color);
-    if (R.palette === 'classic') return ['#A9C79A', '#BFD4A1', '#D3DDA9', '#E5E0AF', '#E6D3A0', '#DCBE8C', '#CDA478', '#BE9273', '#C9B8AC', '#F2EEEA'].map(hex2);
-    if (R.palette === 'swiss') return ['#B9C7A6', '#C4CDA9', '#D0D3AE', '#DCD8B3', '#E2D9B5', '#E5D7B4', '#E3D3B5', '#E2D3BE', '#E8E1D6', '#F6F4F0'].map(hex2);
+    if (R.palette === 'classic') return ['#DDE7D3', '#E3EAD6', '#EAEDD9', '#EFEDDA', '#EEE6D3', '#E9DCC9', '#E3D3C2', '#DDCCBF', '#E7E0DA', '#F5F3F1'].map(hex2);
+    if (R.palette === 'swiss') return ['#D3DBCB', '#D9DFCF', '#DFE2D3', '#E6E5D7', '#EAE6D9', '#ECE6DA', '#EDE7DD', '#EEE9E1', '#F2EFEA', '#F8F7F4'].map(hex2);
     if (R.palette === 'mono') return [0, 0.03, 0.06, 0.1, 0.14, 0.18, 0.23, 0.28, 0.34, 0.4].map((t) => mixC(land, ink, t));
     const brown = [138, 90, 43], cream = [246, 239, 222];
     return [0, 0.04, 0.08, 0.13, 0.19, 0.25, 0.32, 0.4, 0.3, 0.1].map((t, i) => (i < 8 ? mixC(land, brown, t) : mixC(mixC(land, brown, 0.3), cream, i === 8 ? 0.4 : 0.85)));
@@ -185,7 +185,7 @@
     for (let y = 0; y < h; y++) {
       const Y = (V.y0 + (y + 0.5) * k) / V.s; if (Y < 0 || Y > 1) continue;
       for (let x = 0; x < w; x++) {
-        const e = elevAt(a, (V.x0 + (x + 0.5) * k) / V.s, Y); if (e < -0.5) continue;
+        const e = elevAt(a, (V.x0 + (x + 0.5) * k) / V.s, Y); // drawn inside the land clip, so land below sea level gets the lowest tint
         const col = tintAt(T, Math.max(0, e), banded), o = (y * w + x) * 4; d[o] = col[0]; d[o + 1] = col[1]; d[o + 2] = col[2]; d[o + 3] = 255;
       }
     }
@@ -195,8 +195,9 @@
   // Hill shading: 'hard-light' is neutral at grey 128, darkens shadows and lifts sunlit slopes. Above 1 the image is laid twice.
   function shade(ctx, V, amt) {
     if (!store.relief) { img('relief', 'relief.jpg'); return; }
-    ctx.save(); ctx.globalCompositeOperation = 'hard-light';
-    for (let left = amt; left > 0.001; left -= 1) { ctx.globalAlpha = Math.min(1, left); worldImage(ctx, store.relief, V); }
+    // Up to 1: a gentle soft-light pass. Above 1 a hard-light pass adds depth for those who want strong relief.
+    ctx.save(); ctx.globalCompositeOperation = 'soft-light'; ctx.globalAlpha = Math.min(1, amt); worldImage(ctx, store.relief, V);
+    if (amt > 1) { ctx.globalCompositeOperation = 'hard-light'; ctx.globalAlpha = Math.min(1, amt - 1); worldImage(ctx, store.relief, V); }
     ctx.restore();
   }
   const levelsFor = (z) => (z < 4.5 ? [200, 500, 1000, 2000, 3000, 4000] : z < 6 ? [100, 200, 400, 700, 1000, 1500, 2000, 2500, 3000, 4000] : [50, 100, 200, 300, 400, 500, 700, 1000, 1250, 1500, 2000, 2500, 3000, 3500, 4000, 5000]);
