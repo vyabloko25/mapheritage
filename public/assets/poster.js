@@ -46,6 +46,7 @@
     ships: null, autoShips: 2, shipTypes: ['galleon', 'caravel'], texts: [],
     panel: 'auto', panelSize: 0.3, insets: { max: 8, shape: 'circle', zoom: 13, detail: 3, pick: null }, subtitle: '', view: null,
     legendTitle: '', panelTitle: '', pos: {}, insetCfg: {},
+    album: { on: false, by: 'generation', overview: true, pages: [] },
   };
   const PRESETS = {
     discovery: { show: { rhumbs: true }, rhumbs: { alpha: 0.18 }, relief: { style: 'hachure', amt: 0.35, alpha: 0.5, color: '#6A4E32' } },
@@ -82,7 +83,7 @@
       waves: { color: '#D4A64A', alpha: 0.4, density: 0.25 }, vignette: 'rgba(0,0,0,.55)',
       routes: { style: 'casing', width: 2.6, curve: 0.2, arrows: true, casing: '#0B1018' }, markers: { style: 'star', size: 1.05 }, labels: { style: 'italic', halo: 'halo' },
       frame: { style: 'double' }, cartouche: { style: 'medallion' }, compass: { style: 'ornate' }, city: { style: 'night' },
-      show: { texture: false, aging: false, stipple: false, depth: true }, autoShips: 1, shipTypes: ['galleon'],
+      show: { relief: false, texture: false, aging: false, stipple: false, depth: true }, autoShips: 1, shipTypes: ['galleon'],
     },
     atlas: {
       font: 'jost', paper: '#FFFFFF', ink: '#1A1A1A', accent: '#E0301E', frameColor: '#1A1A1A',
@@ -632,7 +633,7 @@
   const NOISE_URL = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(NOISE);
 
   function info(S, D, M) {
-    const title = S.title || t('title.ph');
+    const title = S.title || t('title.' + (S.mode || 'family'));
     if (D.subtitle) return { title, subtitle: D.subtitle };
     const y = span(years(M.events)), people = S.people || [];
     let sub;

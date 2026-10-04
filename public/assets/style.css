@@ -143,3 +143,8 @@ h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.05; m
 .dlg label.chk input, .aform .chk input { flex: none; }
 .brand .logo { --logo-bg: var(--page); color: var(--ink); }
 .leaflet-tooltip.p-label { margin: 0 !important; } .leaflet-tooltip.p-label::before { display: none !important; }
+.langmenu { background: var(--card, #fff); border: 1.5px solid var(--ink, #2E2216); border-radius: 2px; box-shadow: 0 10px 28px rgba(46,34,22,.25); display: grid; min-width: 180px; padding: 4px; }
+.langmenu button { border: 0; background: none; text-align: left; padding: 8px 10px; font: 15px var(--ui, sans-serif); color: var(--ink, #2E2216); cursor: pointer; border-radius: 2px; display: flex; gap: 10px; }
+.langmenu button b { width: 26px; font-weight: 600; color: var(--ink-2, #6b5a48); }
+.langmenu button[aria-checked="true"] { background: var(--page, #EFE6CF); }
+.langmenu button:hover { background: var(--page, #EFE6CF); }

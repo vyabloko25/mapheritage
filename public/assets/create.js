@@ -22,7 +22,33 @@
     const st = $('stage'), r = { landscape: 1600 / 1131, portrait: 1131 / 1600, square: 1 }[design ? design.format : 'landscape'];
     return Math.max(280, Math.floor(Math.min(st.clientWidth - 32, (st.clientHeight - 32) * r)));
   }
-  function paint(o = {}) { if (state) poster.render(state, design, { width: fitWidth(), keepView: o.keepView !== false, animate: o.animate, highlight: o.highlight }); }
+  // ---------- album: the project shown page by page ----------
+  let albumIdx = 0;
+  const albumPages = () => (state && design && design.album && design.album.on ? Album.pages(state, design.album) : []);
+  function pageView(i) {
+    const pg = albumPages(); if (!pg.length) return { st: state, d: design, page: null };
+    const k = Math.max(0, Math.min(pg.length - 1, i)), page = pg[k];
+    if (page.key === 'all') return { st: state, d: design, page };
+    const d = Poster.design({ ...JSON.parse(JSON.stringify(design)), subtitle: design.subtitle ? design.subtitle + ' · ' + page.title : page.title }, state.mode);
+    for (const k of ['pos', 'texts', 'insetCfg', 'ships']) d[k] = design[k]; // moving things on a page moves them in the project
+    d.view = null; // each page frames its own places
+    return { st: Album.filter(state, page), d, page };
+  }
+  function renderAlbumBar() {
+    const bar = $('albumbar'), pg = albumPages(); bar.hidden = pg.length < 2;
+    if (bar.hidden) return;
+    albumIdx = Math.max(0, Math.min(pg.length - 1, albumIdx));
+    bar.innerHTML = `<button class="nav" type="button" data-apage="${albumIdx - 1}" ${albumIdx === 0 ? 'disabled' : ''} aria-label="${esc(t('alb.prev'))}">‹</button>` +
+      pg.map((p, i) => `<button type="button" data-apage="${i}" aria-pressed="${i === albumIdx}" title="${esc(p.subtitle)}">${esc(p.key === 'all' ? t('alb.all') : (i + (pg[0].key === 'all' ? 0 : 1)) + '. ' + p.title)}</button>`).join('') +
+      `<button class="nav" type="button" data-apage="${albumIdx + 1}" ${albumIdx === pg.length - 1 ? 'disabled' : ''} aria-label="${esc(t('alb.next'))}">›</button>`;
+  }
+  $('albumbar').addEventListener('click', (e) => { const b = e.target.closest('[data-apage]'); if (!b || b.disabled) return; albumIdx = +b.dataset.apage; poster.select(null); paint({ keepView: false }); });
+  function paint(o = {}) {
+    if (!state) return;
+    renderAlbumBar();
+    const v = pageView(albumIdx);
+    poster.render(v.st, v.d, { width: fitWidth(), keepView: o.keepView !== false, animate: o.animate, highlight: o.highlight });
+  }
 
   function toast(m) { const el = $('toast'); el.textContent = m; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove('show'), 2800); }
   async function api(path, body, method = 'POST') {
@@ -59,6 +85,7 @@
     state = next;
     if (!design || o.resetDesign) design = Poster.design(state.design, state.mode);
     if (document.activeElement !== $('title')) $('title').value = state.title || '';
+    $('title').placeholder = t('title.' + (state.mode || 'family'));
     $('viewMap').href = '/m/' + cur.id;
     poster.setCanMove(pro());
     const hl = o.highlight ? new Set(state.events.filter((e) => !before.has(e.id)).map((e) => e.id)) : null;
@@ -145,7 +172,7 @@
     { mode: 'tree', key: 'tpl.tree', preset: 'atlas' },
   ];
   let menuFor = null;
-  const fmtDate = (t0) => { try { return new Date(t0).toLocaleDateString(I18N.lang === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
+  const fmtDate = (t0) => { try { return new Date(t0).toLocaleDateString(({ ru: 'ru-RU', uk: 'uk-UA', de: 'de-DE', fr: 'fr-FR', es: 'es-ES' })[I18N.lang] || 'en-GB', { day: 'numeric', month: 'short', year: 'numeric' }); } catch { return ''; } };
   function showProjects() {
     $('projects').hidden = false; document.body.classList.add('in-projects');
     document.documentElement.style.setProperty('--barh', document.querySelector('.bar').getBoundingClientRect().height + 'px');
@@ -164,7 +191,7 @@
       <h2><span>${esc(t('proj.mine'))}</span></h2>
       ${maps.length ? `<div class="plist">${maps.map((m) => `<div class="proj ${cur && m.id === cur.id ? 'cur' : ''}">
           <button class="open" type="button" data-open="${m.id}"><i style="background:${m.colors && m.colors.length >= 5 ? `linear-gradient(90deg,${m.colors[0]} 0 22%,${m.colors[1]} 22% 48%,${m.colors[2]} 48% 72%,${m.colors[3]} 72% 84%,${m.colors[4]} 84%)` : Poster.swatch(m.preset || 'discovery')}"></i>
-          <span class="meta"><span class="badge">${esc(tl(m.mode))}${m.shared ? ' · ' + esc(t('proj.shared')) : ''}</span><b>${esc(m.title || t('untitled'))}</b>
+          <span class="meta"><span class="badge">${esc(tl(m.mode))}${m.shared ? ' · ' + esc(t('proj.shared')) : ''}</span><b>${esc(m.title || t('title.' + (m.mode || 'family')))}</b>
           <span>${esc(t('proj.counts', { p: m.people ?? 0, l: m.places ?? 0 }))} · ${esc(fmtDate(m.updated_at))}</span></span></button>
           <button class="more" type="button" data-more="${m.id}" aria-label="${esc(t('proj.actions'))}">⋯</button>
           ${menuFor === m.id ? `<div class="menu"><button type="button" data-rename="${m.id}">${esc(t('proj.rename'))}</button><button type="button" data-dup="${m.id}">${esc(t('proj.duplicate'))}</button><button type="button" class="danger" data-del="${m.id}">${esc(t('proj.delete'))}</button></div>` : ''}
@@ -376,6 +403,13 @@
           ${ctl('d.look.city', sel('insets.colors.city', ['engraved', 'modern', 'night'], 'd.city.'))}<div class="checks">${check('insets.colors.hatch', 'd.look.hatch')}</div>` : ''}</div><p class="note">${esc(t('d.insets.osm'))}</p>
         <div class="checks" style="grid-template-columns:1fr"><label><input type="checkbox" id="insAuto" ${picked ? '' : 'checked'}> ${esc(t('d.insets.auto'))}</label></div>
         ${picked ? `<div class="picks">${places.map((p) => `<label><input type="checkbox" data-pick="${p.key}" ${picked.has(p.key) ? 'checked' : ''}> ${esc(p.e.place)} <small>${esc(Poster.span(Poster.years(p.list)))}</small></label>`).join('')}</div>` : ctl('d.insets.max', range('insets.max', 0, 16, 1))}</section>
+      <section><h3>${esc(t('alb.title'))}</h3><p class="note">${esc(t('alb.note'))}</p>
+        <div class="checks" style="grid-template-columns:1fr">${check('album.on', 'alb.on')}</div>
+        ${design.album && design.album.on ? `${ctl('alb.by', sel('album.by', ['generation', 'branch', 'person', 'manual'], 'alb.by.'))}<div class="checks" style="grid-template-columns:1fr">${check('album.overview', 'alb.overview')}</div>
+          ${design.album.by === 'manual' ? `<div class="apages">${(design.album.pages || []).map((pg, i) => `<div class="apage"><div class="top"><input data-apt="${i}" value="${esc(pg.title || '')}" placeholder="${esc(t('alb.page', { n: i + 1 }))}"><button class="btn small" type="button" data-apdel="${i}">×</button></div>
+            <div class="ppl">${state.people.map((p) => `<label><input type="checkbox" data-app="${i}" value="${esc(p.id)}" ${(pg.people || []).includes(p.id) ? 'checked' : ''}> ${esc(p.name)}</label>`).join('')}</div></div>`).join('')}</div>
+            <div class="acts"><button class="btn small" type="button" data-act="apAdd">${esc(t('alb.add'))}</button><button class="btn small" type="button" data-act="apAuto">${esc(t('alb.fromAuto'))}</button></div>` : ''}
+          <p class="note">${esc(t('alb.count', { n: albumPages().length }))}</p>` : ''}</section>
       <h3 class="prohead">${esc(t('d.fine'))}${lockB()}</h3>
       ${pro() ? '' : `<p class="note">${esc(t('d.fineLite'))} <a href="/plans">${esc(t('pl.more'))}</a></p>`}
       ${proSec('d.colors', `${ctl('d.paper', color('paper'))}${ctl('d.sea', color('sea'))}${ctl('d.land', color('land'))}${ctl('d.ink', color('ink'))}${ctl('d.accent', color('accent'))}${ctl('d.frameColor', color('frameColor'))}
@@ -416,6 +450,7 @@
   $('design').addEventListener('input', (e) => {
     const el = e.target, d = el.dataset;
     if (d.pal !== undefined) { design.palette[+d.pal] = el.value; return designChanged(); }
+    if (d.apt !== undefined) { design.album.pages[+d.apt].title = el.value; return designChanged(); }
     if (d.ship !== undefined) { const s = poster.ensureShips()[+d.ship]; if (!s) return; s[d.k] = d.k === 's' ? +el.value : el.value; return designChanged(); }
     if (d.text !== undefined) { const x = design.texts[+d.text]; x[d.k] = el.type === 'range' ? +el.value : el.value; return designChanged(); }
     if (!d.set || el.type === 'checkbox' || el.tagName === 'SELECT') return;
@@ -427,8 +462,9 @@
     if (el.dataset.pick) { const s = new Set(design.insets.pick || []); el.checked ? s.add(el.dataset.pick) : s.delete(el.dataset.pick); design.insets.pick = [...s]; return designChanged(); }
     if (el.dataset.ship !== undefined && el.tagName === 'SELECT') { poster.ensureShips()[+el.dataset.ship].type = el.value; return designChanged(); }
     if (el.dataset.text !== undefined && el.tagName === 'SELECT') { design.texts[+el.dataset.text].style = el.value; return designChanged(); }
-    if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); designChanged(); if (el.dataset.set === 'relief.shade') renderDesign(); return; }
-    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); if (el.dataset.set === 'relief.style') { if (!design.show.relief) design.show.relief = true; renderDesign(); } if (el.dataset.set === 'insets.look') { if (el.value === 'custom') design.insets.colors = { sea: design.sea, land: design.land, lake: design.lake || design.sea, ink: design.coast.color, city: design.city.style, hatch: design.city.hatch !== false, ...(design.insets.colors || {}) }; renderDesign(); } }
+    if (el.dataset.app !== undefined) { const pg = design.album.pages[+el.dataset.app], set2 = new Set(pg.people || []); el.checked ? set2.add(el.value) : set2.delete(el.value); pg.people = [...set2]; return designChanged(); }
+    if (el.type === 'checkbox' && el.dataset.set) { set(el.dataset.set, el.checked); designChanged(); if (el.dataset.set === 'relief.shade' || el.dataset.set.startsWith('album.')) { albumIdx = 0; renderDesign(); } return; }
+    if (el.tagName === 'SELECT' && el.dataset.set) { set(el.dataset.set, el.value); designChanged(); if (el.dataset.set === 'relief.style') { if (!design.show.relief) design.show.relief = true; renderDesign(); } if (el.dataset.set === 'album.by') { if (el.value === 'manual' && !(design.album.pages || []).length) design.album.pages = Album.toManual(state, { ...design.album, by: 'generation' }); albumIdx = 0; renderDesign(); paint(); } if (el.dataset.set === 'insets.look') { if (el.value === 'custom') design.insets.colors = { sea: design.sea, land: design.land, lake: design.lake || design.sea, ink: design.coast.color, city: design.city.style, hatch: design.city.hatch !== false, ...(design.insets.colors || {}) }; renderDesign(); } }
   });
   // Switching the style keeps the content and layout the person chose, but takes colours and drawing from the new style.
   const KEEP = ['format', 'subtitle', 'view', 'panel', 'panelSize', 'pos', 'insetCfg', 'legendTitle', 'panelTitle', 'texts', 'ships', 'labelSize'];
@@ -463,6 +499,9 @@
       return;
     }
     if (d.set) { set(d.set, d.val); renderDesign(); return designChanged({ refit: d.set === 'format' && !design.view }); }
+    if (d.act === 'apAdd') { (design.album.pages ||= []).push({ title: '', people: [] }); renderDesign(); return designChanged(); }
+    if (d.act === 'apAuto') { design.album.pages = Album.toManual(state, { ...design.album, by: 'generation' }); renderDesign(); return designChanged(); }
+    if (d.apdel !== undefined) { design.album.pages.splice(+d.apdel, 1); albumIdx = 0; renderDesign(); return designChanged(); }
     if (d.act === 'resetView') { design.view = null; poster.select(null); paint({ keepView: false }); return saveDesignSoon(); }
     if (d.act === 'resetStyle') { applyPreset(design.preset); renderDesign(); return designChanged(); }
     if ((d.act === 'addShip' || d.act === 'addText' || d.act === 'shipsAuto' || d.shipflip || d.shipdel || d.textdel) && needPro()) return;
@@ -508,7 +547,7 @@
     let miss = 0;
     for (const ev of sel.events) if (!Poster.hasGeo(ev)) { const g = found[ev.query]; if (g) Object.assign(ev, { lat: g.lat, lng: g.lng, geo: 'osm', kind: g.kind || '' }); else miss++; }
     const root = sel.people.find((p) => p.id === sel.rootId);
-    const title = root ? (I18N.lang === 'ru' ? 'Род: ' : 'The family of ') + root.name : '';
+    const title = root ? t('ged.title', { name: root.name }) : '';
     await createNew('tree', { side: $('gedScope').value !== 'direct' }, { title, people: sel.people, events: sel.events, rootId: sel.rootId });
     $('gedStatus').textContent = t('i.done', { n: miss }); btn.disabled = false;
   });
@@ -546,7 +585,7 @@
     const hide = (k) => `<button class="btn small" type="button" data-ihide="${k}">${esc(t('insp.hide'))}</button>`;
     const reset = (k) => `<button class="btn small" type="button" data-ireset="${k}" ${dis}>${esc(t('insp.resetPos'))}</button>`;
     let html = '';
-    if (el === 'cartouche') html = `<label>${esc(t('insp.title'))}<input data-ititle value="${esc(state.title)}" placeholder="${esc(t('title.ph'))}"></label>
+    if (el === 'cartouche') html = `<label>${esc(t('insp.title'))}<input data-ititle value="${esc(state.title)}" placeholder="${esc(t('title.' + (state.mode || 'family')))}"></label>
       <label>${esc(t('insp.subtitle'))}<input data-ip="subtitle" value="${esc(design.subtitle)}" placeholder="${esc(t('d.subtitle.ph'))}"></label>
       <label>${esc(t('insp.style'))}${lock}<select data-ip="cartouche.style" ${dis}>${opts(['frame', 'scroll', 'medallion', 'block'].map((x) => [x, t('d.cart.' + x)]), design.cartouche.style)}</select></label>
       <label>${esc(t('insp.size'))}${lock}${rng('cartouche.size', 0.6, 1.6, 0.05, design.cartouche.size)}</label><div class="acts">${reset(el)}${hide(el)}</div>`;
@@ -639,6 +678,7 @@
       <p class="note">${esc(left == null ? t('acc.unlimited') : t('acc.exports', { n: left }))}</p>
       <div class="sizes">${['screen', '3200', 'a3', 'a2'].map((k) => { const ok = allowedSizes().includes(k); return `<label class="sizeopt ${ok ? '' : 'off'}"><input type="radio" name="size" value="${k}" ${k === size ? 'checked' : ''} ${ok ? '' : 'disabled'}><span><b>${esc(t('size.' + k))}</b><small>${esc(dim(k))}${k === 'a3' || k === 'a2' ? ' · ' + esc(t('size.print')) : ''}</small></span>${ok ? '' : `<b class="lock">${esc(t('pro'))}</b>`}</label>`; }).join('')}</div>
       <label class="chk" style="margin-top:10px"><input type="checkbox" id="exJpg"> ${esc(t('ex.jpg'))}</label>
+      ${albumPages().length > 1 ? `<label class="chk"><input type="checkbox" id="exAlbum" checked> ${esc(t('alb.export', { n: albumPages().length }))}</label>` : ''}
       <div class="progress" hidden><i></i></div><p class="err" role="alert"></p>
       <div class="acts">${Account.me && Account.me.print ? `<button class="btn" type="button" data-print>${esc(t('print.btn'))}</button>` : ''}<button class="btn primary" type="button" data-go>${esc(t('btn.download'))}</button></div></div>`;
     document.body.appendChild(dlg);
@@ -654,9 +694,20 @@
       store.set('mh:size', k); go.disabled = true; bar.hidden = false; err.textContent = '';
       try {
         await api(`/api/maps/${cur.id}/export`, { size: k });
-        const { blob, reduced, width: gotW } = await Poster.exportPNG(state, design, { view: poster.currentView(), width: Poster.exportWidth(k, design.format), ships: poster.ships,
+        if (dlg.querySelector('#exAlbum') && dlg.querySelector('#exAlbum').checked) {
+          const pg = albumPages(), files = [], base = Poster.slug(state.title || t('title.' + (state.mode || 'family')));
+          for (let i = 0; i < pg.length; i++) {
+            const v = pageView(i), r = await Poster.exportPNG(v.st, v.d, { view: v.page && v.page.key === 'all' ? poster.currentView() : null, width: Poster.exportWidth(k, design.format), type: jpg ? 'image/jpeg' : 'image/png',
+              onProgress: (p) => (bar.firstChild.style.width = ((i + p) / pg.length) * 100 + '%') });
+            files.push({ name: `${String(i + 1).padStart(2, '0')}-${Poster.slug(v.page.title)}.${jpg ? 'jpg' : 'png'}`, blob: r.blob });
+          }
+          Poster.download(await Album.zip(files), base + '-album-' + k + '.zip');
+          toast(t('toast.exported')); Account.load(); close(); return;
+        }
+        const pv = pageView(albumIdx);
+        const { blob, reduced, width: gotW } = await Poster.exportPNG(pv.st, pv.d, { view: pv.page && pv.page.key !== 'all' ? poster.currentView() : poster.currentView(), width: Poster.exportWidth(k, design.format), ships: poster.ships,
           type: jpg ? 'image/jpeg' : 'image/png', onProgress: (v) => (bar.firstChild.style.width = v * 100 + '%') });
-        Poster.download(blob, Poster.slug(state.title || t('title.ph')) + '-' + k + (jpg ? '.jpg' : '.png'));
+        Poster.download(blob, Poster.slug(state.title || t('title.' + (state.mode || 'family'))) + '-' + k + (jpg ? '.jpg' : '.png'));
         toast(reduced ? t('toast.reduced', { w: gotW }) : t('toast.exported')); Account.load(); close();
       } catch (e2) { err.textContent = e2.message || 'Export failed'; go.disabled = false; bar.hidden = true; }
     });

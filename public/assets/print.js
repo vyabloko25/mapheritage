@@ -2,7 +2,7 @@
 (function () {
   const { t } = I18N, esc = Poster.esc;
   let cfg = null;
-  const money = (v, c) => { try { return new Intl.NumberFormat(I18N.lang === 'ru' ? 'ru-RU' : 'de-DE', { style: 'currency', currency: c || 'EUR' }).format(v); } catch { return v + ' ' + (c || 'EUR'); } };
+  const money = (v, c) => { try { return new Intl.NumberFormat(({ ru: 'ru-RU', uk: 'uk-UA', en: 'en-IE', fr: 'fr-FR', es: 'es-ES' })[I18N.lang] || 'de-DE', { style: 'currency', currency: c || 'EUR' }).format(v); } catch { return v + ' ' + (c || 'EUR'); } };
   const zone = (c) => (c === 'DE' ? 'DE' : cfg.countries && ['AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE'].includes(c) ? 'EU' : 'WORLD');
   const regionName = (c) => { try { return new Intl.DisplayNames([I18N.lang], { type: 'region' }).of(c); } catch { return c; } };
 

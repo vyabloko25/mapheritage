@@ -1,7 +1,32 @@
-/* MapHeritage: English by default, Russian on toggle */
+/* MapHeritage: interface languages; the browser language is used until the person picks another */
 (function () {
   const D = {
  "en": {
+  "ged.title": "The family of {name}",
+  "alb.others": "Others",
+  "alb.own": "{name} and family",
+  "alb.line": "The line of {name}",
+  "alb.gen": "Generation {n}",
+  "alb.all": "Overview",
+  "alb.next": "Next page",
+  "alb.prev": "Previous page",
+  "alb.export": "The whole album as a ZIP ({n} pages)",
+  "alb.count": "Pages in the album: {n}",
+  "alb.fromAuto": "Fill from generations",
+  "alb.add": "Add a page",
+  "alb.page": "Page {n}",
+  "alb.overview": "First page: everyone together",
+  "alb.by.manual": "My own pages",
+  "alb.by.person": "One person per page",
+  "alb.by.branch": "By family branch",
+  "alb.by.generation": "By generation",
+  "alb.by": "Pages",
+  "alb.on": "Make an album",
+  "alb.note": "Show the project as several pages: by generation, by family branch, by person, or pages you put together yourself.",
+  "alb.title": "Album",
+  "title.tree": "Family tree",
+  "title.family": "My family map",
+  "title.journey": "My story",
   "err.pro_ai": "The AI assistant is part of Pro. In Lite, add people and places in “Edit”.",
   "ai.pro": "About Pro",
   "ai.manual": "Fill in by hand",
@@ -66,7 +91,6 @@
   "d.rp.sepia": "Sepia",
   "d.rp.classic": "Classic atlas",
   "d.relief.palette": "Tints",
-  "d.rs.pictorial": "Pictorial mountains",
   "d.rs.hachure": "Hachures",
   "d.rs.contour": "Contour lines",
   "d.rs.hypso": "Elevation tints",
@@ -325,9 +349,7 @@
   "toast.removed": "Removed",
   "toast.notFound": "Place not found. Add a country, or pick it on the map.",
   "toast.exported": "Image downloaded",
-  "toast.noTiles": "The base map could not be read, so it was replaced with a plain tint.",
   "toast.emptyMap": "Add at least one place before exporting.",
-  "myMaps": "My maps",
   "untitled": "Untitled",
   "noLoc": "no location",
   "d.presets": "Style",
@@ -335,15 +357,6 @@
   "d.preset.admiralty": "Admiralty",
   "d.preset.night": "Night voyage",
   "d.preset.atlas": "Modern atlas",
-  "d.base": "Base map",
-  "d.base.light": "Grey",
-  "d.base.dark": "Black",
-  "d.base.voyager": "Colour",
-  "d.tint": "Tint",
-  "d.tintAmt": "Tint strength",
-  "d.sat": "Saturation",
-  "d.bright": "Brightness",
-  "d.contrast": "Contrast",
   "d.colors": "Colours",
   "d.paper": "Paper",
   "d.ink": "Ink",
@@ -565,6 +578,31 @@
   "p.mi": "mi"
  },
  "ru": {
+  "ged.title": "Род: {name}",
+  "alb.others": "Остальные",
+  "alb.own": "{name} и семья",
+  "alb.line": "Линия: {name}",
+  "alb.gen": "Поколение {n}",
+  "alb.all": "Обзор",
+  "alb.next": "Следующая страница",
+  "alb.prev": "Предыдущая страница",
+  "alb.export": "Весь альбом одним ZIP ({n} стр.)",
+  "alb.count": "Страниц в альбоме: {n}",
+  "alb.fromAuto": "Заполнить по поколениям",
+  "alb.add": "Добавить страницу",
+  "alb.page": "Страница {n}",
+  "alb.overview": "Первая страница — все вместе",
+  "alb.by.manual": "Свои страницы",
+  "alb.by.person": "Один человек — одна страница",
+  "alb.by.branch": "По ветвям семьи",
+  "alb.by.generation": "По поколениям",
+  "alb.by": "Страницы",
+  "alb.on": "Сделать альбом",
+  "alb.note": "Показать проект несколькими страницами: по поколениям, по ветвям семьи, по людям или страницами, которые вы соберёте сами.",
+  "alb.title": "Альбом",
+  "title.tree": "Родословная",
+  "title.family": "Карта моей семьи",
+  "title.journey": "Моя история",
   "err.pro_ai": "ИИ-помощник доступен в Pro. В Lite добавляйте людей и места во вкладке «Правка».",
   "ai.pro": "Подробнее о Pro",
   "ai.manual": "Заполнить вручную",
@@ -629,7 +667,6 @@
   "d.rp.sepia": "Сепия",
   "d.rp.classic": "Классический атлас",
   "d.relief.palette": "Шкала",
-  "d.rs.pictorial": "Рисованные горы",
   "d.rs.hachure": "Штрихи",
   "d.rs.contour": "Горизонтали",
   "d.rs.hypso": "Послойная окраска",
@@ -888,9 +925,7 @@
   "toast.removed": "Удалено",
   "toast.notFound": "Место не нашлось. Добавьте страну или укажите его на карте.",
   "toast.exported": "Изображение скачано",
-  "toast.noTiles": "Подложку не удалось прочитать, вместо неё — ровный тон.",
   "toast.emptyMap": "Сначала добавьте хотя бы одно место.",
-  "myMaps": "Мои карты",
   "untitled": "Без названия",
   "noLoc": "нет места на карте",
   "d.presets": "Стиль",
@@ -898,15 +933,6 @@
   "d.preset.admiralty": "Адмиралтейство",
   "d.preset.night": "Ночное плавание",
   "d.preset.atlas": "Современный атлас",
-  "d.base": "Подложка",
-  "d.base.light": "Серая",
-  "d.base.dark": "Чёрная",
-  "d.base.voyager": "Цветная",
-  "d.tint": "Тонировка",
-  "d.tintAmt": "Сила тонировки",
-  "d.sat": "Насыщенность",
-  "d.bright": "Яркость",
-  "d.contrast": "Контраст",
   "d.colors": "Цвета",
   "d.paper": "Бумага",
   "d.ink": "Чернила",
@@ -1128,8 +1154,15 @@
   "p.mi": "ми"
  }
 };
-  let lang = 'en';
-  try { const s = localStorage.getItem('mh:lang'); if (s === 'ru' || s === 'en') lang = s; } catch {}
+  // Languages: English and Russian live here, the others in /assets/i18n/<code>.js (loaded right after this file).
+  const LANGS = [['en', 'English'], ['ru', 'Русский'], ['de', 'Deutsch'], ['uk', 'Українська'], ['fr', 'Français'], ['es', 'Español']];
+  const CODES = LANGS.map((x) => x[0]);
+  function detect() {
+    try { const s = localStorage.getItem('mh:lang'); if (CODES.includes(s)) return s; } catch {}
+    for (const l of navigator.languages || [navigator.language || 'en']) { const c = String(l).toLowerCase().slice(0, 2); if (CODES.includes(c)) return c; }
+    return 'en';
+  }
+  let lang = detect();
   const subs = [];
   function t(k, v) {
     let s = (D[lang] && D[lang][k]) ?? D.en[k] ?? k;
@@ -1138,25 +1171,42 @@
   }
   function plural(n, key) {
     const f = t(key).split('|');
-    if (lang === 'ru') { const a = n % 10, b = n % 100; return f[a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2]; }
-    return n === 1 ? f[0] : f[1];
+    if (lang === 'ru' || lang === 'uk') { const a = n % 10, b = n % 100; return f[Math.min(f.length - 1, a === 1 && b !== 11 ? 0 : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 1 : 2)]; }
+    if (lang === 'fr') return n <= 1 ? f[0] : f[1] || f[0];
+    return n === 1 ? f[0] : f[1] || f[0];
   }
   function apply(root = document) {
     document.documentElement.lang = lang;
     root.querySelectorAll('[data-i18n]').forEach((e) => (e.textContent = t(e.dataset.i18n)));
     root.querySelectorAll('[data-i18n-ph]').forEach((e) => (e.placeholder = t(e.dataset.i18nPh)));
     root.querySelectorAll('[data-i18n-label]').forEach((e) => { e.setAttribute('aria-label', t(e.dataset.i18nLabel)); e.title = t(e.dataset.i18nLabel); });
-    root.querySelectorAll('[data-lang-toggle]').forEach((b) => { b.textContent = t('lang.toggle'); b.setAttribute('aria-label', t('lang.name')); b.title = t('lang.name'); });
+    root.querySelectorAll('[data-lang-toggle]').forEach((b) => { b.textContent = lang.toUpperCase() + ' ▾'; b.setAttribute('aria-label', 'Language'); b.title = (LANGS.find((x) => x[0] === lang) || [])[1] || ''; b.setAttribute('aria-haspopup', 'menu'); });
   }
   function set(l) {
+    if (!CODES.includes(l)) return;
     lang = l;
     try { localStorage.setItem('mh:lang', l); } catch {}
     apply();
     subs.forEach((f) => f(l));
   }
+  // Language menu under any [data-lang-toggle] button.
+  let menu = null;
+  const closeMenu = () => { if (menu) { menu.remove(); menu = null; } };
   document.addEventListener('click', (e) => {
-    if (e.target.closest && e.target.closest('[data-lang-toggle]')) set(lang === 'en' ? 'ru' : 'en');
+    const pick = e.target.closest && e.target.closest('[data-lang-pick]');
+    if (pick) { closeMenu(); set(pick.dataset.langPick); return; }
+    const b = e.target.closest && e.target.closest('[data-lang-toggle]');
+    if (!b) return closeMenu();
+    if (menu) return closeMenu();
+    const r = b.getBoundingClientRect();
+    menu = document.createElement('div'); menu.className = 'langmenu'; menu.setAttribute('role', 'menu');
+    menu.style.cssText = `position:fixed;left:${Math.max(8, Math.min(r.left, innerWidth - 190))}px;top:${r.bottom + 6}px;z-index:5000`;
+    menu.innerHTML = LANGS.map(([c, n]) => `<button type="button" role="menuitemradio" aria-checked="${c === lang}" data-lang-pick="${c}"><b>${c.toUpperCase()}</b> ${n}</button>`).join('');
+    document.body.appendChild(menu);
   });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenu(); });
+  // Extra languages register themselves: I18N.add('de', {...}).
+  function add(l, dict) { D[l] = { ...(D[l] || {}), ...dict }; if (l === lang) { apply(); subs.forEach((f) => f(l)); } }
   const tIn = (l, k) => (D[l] && D[l][k]) ?? D.en[k] ?? k;
-  window.I18N = { t, tIn, langs: ['en', 'ru'], plural, apply, set, on: (f) => subs.push(f), get lang() { return lang; } };
+  window.I18N = { t, tIn, langs: CODES, list: LANGS, plural, apply, set, add, on: (f) => subs.push(f), get lang() { return lang; } };
 })();
